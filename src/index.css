@@ -1,0 +1,171 @@
+/* Estilos globales: variables de diseño, reset y estilos base del documento. */
+
+:root {
+  /* Colores */
+  --color-primary: #67fde1;
+  --color-primary-container: #42e0c5;
+  --color-on-primary: #00382f;
+  --color-secondary: #ffb59d;
+  --color-secondary-container: #703623;
+  --color-on-secondary: #54210f;
+  --color-surface: #1d100e;
+  --color-surface-container-lowest: #170b09;
+  --color-surface-container-low: #261816;
+  --color-surface-container: #2a1c1a;
+  --color-surface-container-high: #352624;
+  --color-surface-container-highest: #41312e;
+  --color-surface-variant: #41312e;
+  --color-on-surface: #f6ddd9;
+  --color-on-surface-variant: #bacac5;
+  --color-outline: #85948f;
+  --color-divider: #41312eb3;
+
+  /* Espaciado */
+  --margin: 3rem;
+  --margin-mobile: 1.25rem;
+  --gutter: 1.5rem;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.75rem;
+  --space-xl: 2.75rem;
+  --nav-height: 5rem;
+
+  /* Familias tipográficas */
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Montserrat', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Estilos de texto (usar con `font:` y su `letter-spacing` correspondiente) */
+  --type-headline-2xl: 400 56px / 64px var(--font-serif);
+  --tracking-headline-2xl: -0.02em;
+  --type-headline-xl: 400 40px / 48px var(--font-serif);
+  --tracking-headline-xl: -0.01em;
+  --type-headline-lg: 500 30px / 38px var(--font-serif);
+  --type-headline-md: 500 22px / 30px var(--font-serif);
+  --type-body-lg: 300 16px / 26px var(--font-sans);
+  --type-body-md: 400 14px / 22px var(--font-sans);
+  --type-body-sm: 400 12px / 18px var(--font-sans);
+  --type-caption: 400 12px / 16px var(--font-sans);
+  --type-label-md: 500 12px / 16px var(--font-sans);
+  --tracking-label-md: 0.14em;
+  --type-label-sm: 600 10px / 14px var(--font-sans);
+  --tracking-label-sm: 0.18em;
+
+  /* Bordes, sombras y transiciones */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl:
+    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration: 150ms;
+}
+
+/* Reset */
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+
+html {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  vertical-align: middle;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background-color: transparent;
+  border-radius: 0;
+  appearance: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+table {
+  border-collapse: collapse;
+  text-indent: 0;
+  border-color: inherit;
+}
+
+::placeholder {
+  opacity: 1;
+}
+
+[hidden]:where(:not([hidden='until-found'])) {
+  display: none !important;
+}
+
+/* Documento */
+body {
+  overscroll-behavior: none;
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font: var(--type-body-md);
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
