@@ -53,22 +53,53 @@ async function errorMessage(res) {
   return 'Error ' + res.status
 }
 
-async function http(method, path, body) {
+// fetch no informa de cuánto se ha subido, así que la foto se envía con XMLHttpRequest para
+// poder mostrar el progreso. Devuelve un Response normal: el resto de `http` no cambia.
+function upload(method, url, headers, form, onProgress) {
+  return new Promise(function (resolve, reject) {
+    const xhr = new XMLHttpRequest()
+    xhr.open(method, url)
+    Object.entries(headers).forEach(function ([key, value]) {
+      xhr.setRequestHeader(key, value)
+    })
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+    xhr.upload.onload = function () {
+      onProgress(100)
+    }
+    xhr.onload = function () {
+      resolve(
+        new Response(xhr.status === 204 ? null : xhr.responseText, {
+          status: xhr.status,
+        }),
+      )
+    }
+    xhr.onerror = reject
+    xhr.send(form)
+  })
+}
+
+async function http(method, path, body, onProgress) {
   const token = getToken()
   // Con FormData (artículo con foto) no se pone Content-Type: el navegador lo añade solo,
   // con el "boundary" que separa los campos. Si se fijara a mano, el backend no podría leerlo.
   const isForm = body instanceof FormData
+  const headers = Object.assign(
+    {},
+    isForm || !body ? {} : { 'Content-Type': 'application/json' },
+    token ? { Authorization: 'Bearer ' + token } : {},
+  )
   let res
   try {
-    res = await fetch(API_BASE_URL + path, {
-      method,
-      headers: Object.assign(
-        {},
-        isForm || !body ? {} : { 'Content-Type': 'application/json' },
-        token ? { Authorization: 'Bearer ' + token } : {},
-      ),
-      body: isForm ? body : body ? JSON.stringify(body) : undefined,
-    })
+    res =
+      isForm && onProgress
+        ? await upload(method, API_BASE_URL + path, headers, body, onProgress)
+        : await fetch(API_BASE_URL + path, {
+            method,
+            headers,
+            body: isForm ? body : body ? JSON.stringify(body) : undefined,
+          })
   } catch {
     throw new Error(
       'No se pudo conectar con el servidor. Comprueba que el backend está encendido.',
@@ -301,11 +332,17 @@ export const api = USE_MOCK
       list: function () {
         return http('GET', '/articles')
       },
-      create: function (data) {
-        return http('POST', '/articles', toBody(data))
+      // `onProgress(porcentaje)` es opcional y solo se llama si se sube una foto.
+      create: function (data, onProgress) {
+        return http('POST', '/articles', toBody(data), onProgress)
       },
-      update: function (id, data) {
-        return http('PUT', '/articles/' + encodeURIComponent(id), toBody(data))
+      update: function (id, data, onProgress) {
+        return http(
+          'PUT',
+          '/articles/' + encodeURIComponent(id),
+          toBody(data),
+          onProgress,
+        )
       },
       remove: function (id) {
         return http('DELETE', '/articles/' + encodeURIComponent(id))

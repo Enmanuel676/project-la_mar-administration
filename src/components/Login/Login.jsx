@@ -96,13 +96,19 @@ export default function Login({ onLogin }) {
             disabled={busy}
             type="submit"
           >
-            <span>Entrar</span>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 18 }}
-            >
-              arrow_forward
-            </span>
+            {busy ? (
+              <span>Cargando…</span>
+            ) : (
+              <>
+                <span>Entrar</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 18 }}
+                >
+                  arrow_forward
+                </span>
+              </>
+            )}
           </button>
         </form>
       </div>

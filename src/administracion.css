@@ -356,6 +356,27 @@ textarea.field {
   pointer-events: none;
 }
 
+/* Guardar con foto: el botón es la barra de progreso. Debajo, la pista oscura; encima, el
+   relleno, recortado con clip-path según el porcentaje subido. */
+.btn-primary.btn-progress {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  opacity: 1;
+}
+
+.btn-progress__fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  transition: clip-path 0.2s linear;
+}
+
 .icon-btn {
   display: inline-flex;
   flex-shrink: 0;

@@ -112,15 +112,15 @@ export default function Dashboard({ onLogout }) {
     }
   }
 
-  async function saveArticle(data) {
+  async function saveArticle(data, onProgress) {
     if (editingId) {
-      const updated = await api.update(editingId, data)
+      const updated = await api.update(editingId, data, onProgress)
       setArticles((list) =>
         list.map((a) => (a.id === updated.id ? updated : a)),
       )
       pushToast('Cambios guardados')
     } else {
-      const created = await api.create(data)
+      const created = await api.create(data, onProgress)
       setArticles((list) => [created, ...list])
       pushToast('Artículo añadido')
     }

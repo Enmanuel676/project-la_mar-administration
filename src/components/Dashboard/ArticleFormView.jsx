@@ -85,6 +85,8 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
   const [form, setForm] = useState(() => toForm(article))
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  // Porcentaje subido de la foto nueva mientras se guarda; null si no se está subiendo ninguna.
+  const [progress, setProgress] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [removeImage, setRemoveImage] = useState(false)
   const fileInputRef = useRef(null)
@@ -164,14 +166,24 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
     }
     setError('')
     setSaving(true)
+    setProgress(imageFile ? 0 : null)
     try {
-      await onSave(data)
+      await onSave(data, imageFile ? setProgress : undefined)
     } catch (ex) {
       setError(ex.message)
     } finally {
       setSaving(false)
+      setProgress(null)
     }
   }
+
+  // Al llegar al 100 % la foto ya está en el servidor, que aún tiene que optimizarla.
+  const progressLabel =
+    progress === null
+      ? ''
+      : progress < 100
+        ? `Subiendo ${progress} %`
+        : 'Procesando foto…'
 
   return (
     <section className="admin__view admin__view--form" id="view-form">
@@ -387,15 +399,48 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
           </button>
         )}
         <button
-          className={'btn-primary' + (saving ? ' is-busy' : '')}
+          className={
+            'btn-primary' +
+            (saving ? ' is-busy' : '') +
+            (progress !== null ? ' btn-progress' : '')
+          }
           disabled={saving}
           form="article-form"
           type="submit"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            save
-          </span>
-          <span>Guardar</span>
+          {progress !== null ? (
+            <>
+              <span
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={progress}
+                role="progressbar"
+              >
+                {progressLabel}
+              </span>
+              {/* Copia del texto sobre el relleno, recortada al porcentaje subido: la barra
+                  crece de izquierda a derecha y el texto se lee bien en ambas partes. */}
+              <span
+                aria-hidden="true"
+                className="btn-progress__fill"
+                style={{ clipPath: `inset(0 ${100 - progress}% 0 0)` }}
+              >
+                {progressLabel}
+              </span>
+            </>
+          ) : saving ? (
+            <span>Cargando…</span>
+          ) : (
+            <>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 18 }}
+              >
+                save
+              </span>
+              <span>Guardar</span>
+            </>
+          )}
         </button>
       </div>
     </section>
