@@ -24,7 +24,8 @@
 import { getToken, clearSession } from './session'
 
 const USE_MOCK = false
-const API_BASE_URL = 'http://localhost:3000/api'
+// En el servidor se compila con VITE_API_URL (p. ej. https://api.lamarjoyeria.mooo.com/api).
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 
 export const TRASH_DAYS = 30
 export const DAY_MS = 24 * 60 * 60 * 1000
