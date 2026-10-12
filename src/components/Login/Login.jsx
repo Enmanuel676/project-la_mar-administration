@@ -112,7 +112,7 @@ export default function Login({ onLogin }) {
           </button>
         </form>
       </div>
-      <p className="login__foot">© La Mar Haute Joaillerie</p>
+      <p className="login__foot">© La Mar Joyeria</p>
     </section>
   )
 }
