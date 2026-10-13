@@ -11,6 +11,7 @@ const FILTERS = [
 export default function CatalogView({
   articles,
   deleted,
+  pending,
   loading,
   filter,
   query,
@@ -127,6 +128,7 @@ export default function CatalogView({
                 key={a.id}
                 onDestroy={() => onDestroy(a)}
                 onRestore={() => onRestore(a)}
+                status={pending[a.id]}
               />
             ) : (
               <ArticleCard
@@ -135,6 +137,7 @@ export default function CatalogView({
                 onDelete={() => onDelete(a)}
                 onEdit={() => onEdit(a)}
                 onTogglePublished={() => onTogglePublished(a)}
+                status={pending[a.id]}
               />
             ),
           )

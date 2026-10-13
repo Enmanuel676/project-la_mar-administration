@@ -1,14 +1,28 @@
+import DoneButton from '../DoneButton/DoneButton'
 import Money from './Money'
+
+const badgeClass = (published) => 'badge' + (published ? ' badge-on' : '')
+const badgeLabel = (published) => (published ? 'Publicado' : 'Borrador')
 
 export default function ArticleCard({
   article,
+  status,
   onEdit,
   onTogglePublished,
   onDelete,
 }) {
+  // Mientras se publica o se pasa a borrador la tarjeta no responde y la etiqueta se apaga;
+  // al terminar, el estado nuevo aparece en píxeles sobre ella.
+  const busy = !!status
+
   return (
     <article className="card" data-id={article.id}>
-      <button className="card__main" onClick={onEdit} type="button">
+      <button
+        className="card__main"
+        disabled={busy}
+        onClick={onEdit}
+        type="button"
+      >
         <div className="card__thumb">
           {article.image ? (
             <img alt="" src={article.image} />
@@ -35,16 +49,21 @@ export default function ArticleCard({
         </div>
       </button>
       <div className="card__side">
-        <button
-          className={'badge' + (article.published ? ' badge-on' : '')}
+        <DoneButton
+          className={badgeClass(article.published)}
+          disabled={busy}
+          done={status === 'done'}
+          doneClassName={badgeClass(!article.published)}
+          doneContent={badgeLabel(!article.published)}
           onClick={onTogglePublished}
           type="button"
         >
-          {article.published ? 'Publicado' : 'Borrador'}
-        </button>
+          {badgeLabel(article.published)}
+        </DoneButton>
         <button
           aria-label={'Eliminar ' + article.name}
           className="icon-btn icon-btn--sm icon-btn--danger"
+          disabled={busy}
           onClick={onDelete}
           type="button"
         >

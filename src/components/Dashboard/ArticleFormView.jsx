@@ -5,6 +5,7 @@ import {
   MAX_IMAGE_MB,
   MAX_IMAGE_SIDE,
 } from '../../lib/api'
+import DoneButton from '../DoneButton/DoneButton'
 
 const MB = 1024 * 1024
 
@@ -87,6 +88,8 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
   const [saving, setSaving] = useState(false)
   // Porcentaje subido de la foto nueva mientras se guarda; null si no se está subiendo ninguna.
   const [progress, setProgress] = useState(null)
+  // Guardado: el botón pasa a «Hecho» y, al terminar, se vuelve al catálogo.
+  const [saved, setSaved] = useState(false)
   const [imageFile, setImageFile] = useState(null)
   const [removeImage, setRemoveImage] = useState(false)
   const fileInputRef = useRef(null)
@@ -169,9 +172,10 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
     setProgress(imageFile ? 0 : null)
     try {
       await onSave(data, imageFile ? setProgress : undefined)
+      // `saving` sigue activo: debajo de «Hecho» el botón se queda como estaba.
+      setSaved(true)
     } catch (ex) {
       setError(ex.message)
-    } finally {
       setSaving(false)
       setProgress(null)
     }
@@ -398,14 +402,16 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
             </span>
           </button>
         )}
-        <button
+        <DoneButton
           className={
             'btn-primary' +
             (saving ? ' is-busy' : '') +
             (progress !== null ? ' btn-progress' : '')
           }
           disabled={saving}
+          done={saved}
           form="article-form"
+          onDone={onBack}
           type="submit"
         >
           {progress !== null ? (
@@ -441,7 +447,7 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
               <span>Guardar</span>
             </>
           )}
-        </button>
+        </DoneButton>
       </div>
     </section>
   )

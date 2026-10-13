@@ -1,13 +1,15 @@
 import { TRASH_DAYS } from '../../lib/api'
+import DoneButton from '../DoneButton/DoneButton'
 
 export default function ConfirmDialog({ confirm, onCancel, onConfirm }) {
   if (!confirm) return null
-  const { article, permanent } = confirm
+  // Mientras se borra (y mientras el botón pasa a «Hecho») el diálogo no se puede cerrar.
+  const { article, permanent, busy, done } = confirm
 
   return (
     <div
       className="confirm"
-      onClick={(e) => e.target === e.currentTarget && onCancel()}
+      onClick={(e) => e.target === e.currentTarget && !busy && onCancel()}
     >
       <div className="confirm__sheet">
         <div className="confirm__grip" />
@@ -26,12 +28,29 @@ export default function ConfirmDialog({ confirm, onCancel, onConfirm }) {
               ' días.'}
         </p>
         <div className="confirm__actions">
-          <button className="btn-ghost" onClick={onCancel} type="button">
+          <button
+            className="btn-ghost"
+            disabled={busy}
+            onClick={onCancel}
+            type="button"
+          >
             Cancelar
           </button>
-          <button className="btn-danger" onClick={onConfirm} type="button">
-            {permanent ? 'Borrar' : 'Eliminar'}
-          </button>
+          <DoneButton
+            className={'btn-danger' + (busy ? ' is-busy' : '')}
+            disabled={busy}
+            done={done}
+            onClick={onConfirm}
+            type="button"
+          >
+            {busy
+              ? permanent
+                ? 'Borrando…'
+                : 'Eliminando…'
+              : permanent
+                ? 'Borrar'
+                : 'Eliminar'}
+          </DoneButton>
         </div>
       </div>
     </div>

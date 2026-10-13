@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../lib/api'
+import { DONE_MS } from '../DoneButton/DoneButton'
 import CatalogView from './CatalogView'
 import ArticleFormView from './ArticleFormView'
 import ConfirmDialog from './ConfirmDialog'
 import Toasts from './Toasts'
+
+// Las acciones cambian la lista cuando su botón ya ha pasado a «Hecho» (DoneButton): antes,
+// la tarjeta o el diálogo desaparecerían sin que se viera la transición. Se espera aquí y no
+// en el botón para que el cambio llegue aunque la tarjeta deje de verse mientras tanto (por
+// ejemplo, al cambiar de filtro).
+function settle() {
+  return new Promise((resolve) => setTimeout(resolve, DONE_MS))
+}
 
 export default function Dashboard({ onLogout }) {
   const [articles, setArticles] = useState([])
@@ -13,7 +22,9 @@ export default function Dashboard({ onLogout }) {
   const [query, setQuery] = useState('')
   const [view, setView] = useState('catalog') // 'catalog' | 'form'
   const [editingId, setEditingId] = useState(null)
-  const [confirm, setConfirm] = useState(null) // { article, permanent }
+  const [confirm, setConfirm] = useState(null) // { article, permanent, busy, done }
+  // Tarjetas que se están publicando o restaurando: { [id]: 'busy' | 'done' }
+  const [pending, setPending] = useState({})
   const [toasts, setToasts] = useState([])
 
   const pushToast = useCallback((msg, kind) => {
@@ -59,29 +70,46 @@ export default function Dashboard({ onLogout }) {
     setView('form')
   }
 
+  function setStatus(id, status) {
+    setPending((map) => {
+      const next = { ...map }
+      if (status) next[id] = status
+      else delete next[id]
+      return next
+    })
+  }
+
   async function togglePublished(article) {
+    setStatus(article.id, 'busy')
     try {
       const updated = await api.update(article.id, {
         published: !article.published,
       })
+      pushToast(updated.published ? 'Artículo publicado' : 'Pasado a borrador')
+      setStatus(article.id, 'done')
+      await settle()
       setArticles((list) =>
         list.map((a) => (a.id === updated.id ? updated : a)),
       )
-      pushToast(updated.published ? 'Artículo publicado' : 'Pasado a borrador')
     } catch (ex) {
       pushToast(ex.message, 'error')
     }
+    setStatus(article.id, null)
   }
 
   async function restoreArticle(article) {
+    setStatus(article.id, 'busy')
     try {
       const restored = await api.restore(article.id)
+      pushToast('Artículo restaurado como borrador')
+      setStatus(article.id, 'done')
+      await settle()
       setDeleted((list) => list.filter((a) => a.id !== article.id))
       setArticles((list) => [restored, ...list])
-      pushToast('Artículo restaurado como borrador')
     } catch (ex) {
       pushToast(ex.message, 'error')
     }
+    setStatus(article.id, null)
   }
 
   function requestDelete(article, permanent) {
@@ -91,27 +119,36 @@ export default function Dashboard({ onLogout }) {
   async function handleConfirm() {
     if (!confirm) return
     const { article, permanent } = confirm
+    setConfirm({ article, permanent, busy: true })
     try {
-      if (permanent) {
-        await api.destroy(article.id)
-        setDeleted((list) => list.filter((a) => a.id !== article.id))
-        pushToast('Artículo borrado definitivamente')
-      } else {
-        await api.remove(article.id)
-        setArticles((list) => list.filter((a) => a.id !== article.id))
-        setDeleted((list) => [
-          { ...article, published: false, deletedAt: Date.now() },
-          ...list,
-        ])
-        pushToast('Movido a Eliminados')
-      }
-      setConfirm(null)
-      setView((v) => (v === 'form' ? 'catalog' : v))
+      if (permanent) await api.destroy(article.id)
+      else await api.remove(article.id)
     } catch (ex) {
       pushToast(ex.message, 'error')
+      setConfirm({ article, permanent })
+      return
     }
+    pushToast(
+      permanent ? 'Artículo borrado definitivamente' : 'Movido a Eliminados',
+    )
+    setConfirm({ article, permanent, busy: true, done: true })
+    // Hasta aquí el artículo sigue en la lista: si saliera antes, el formulario de edición que
+    // queda detrás del diálogo se vaciaría mientras se ve «Hecho».
+    await settle()
+    if (permanent) {
+      setDeleted((list) => list.filter((a) => a.id !== article.id))
+    } else {
+      setArticles((list) => list.filter((a) => a.id !== article.id))
+      setDeleted((list) => [
+        { ...article, published: false, deletedAt: Date.now() },
+        ...list,
+      ])
+    }
+    setConfirm(null)
+    setView((v) => (v === 'form' ? 'catalog' : v))
   }
 
+  // El formulario vuelve al catálogo él mismo, cuando su botón ya muestra «Hecho».
   async function saveArticle(data, onProgress) {
     if (editingId) {
       const updated = await api.update(editingId, data, onProgress)
@@ -124,7 +161,6 @@ export default function Dashboard({ onLogout }) {
       setArticles((list) => [created, ...list])
       pushToast('Artículo añadido')
     }
-    setView('catalog')
   }
 
   return (
@@ -144,6 +180,7 @@ export default function Dashboard({ onLogout }) {
           onQueryChange={setQuery}
           onRestore={restoreArticle}
           onTogglePublished={togglePublished}
+          pending={pending}
           query={query}
         />
       ) : (

@@ -19,6 +19,9 @@ su foto. Habla con la API de `project-la_mar-backend`.
   Cada tarjeta muestra los días que le quedan.
 - **Avisos y confirmaciones**: mensajes breves tras cada acción y un diálogo de confirmación
   antes de eliminar.
+- **Botones con estado**: mientras responde el servidor muestran «Cargando…», «Eliminando…»,
+  «Borrando…» o «Restaurando…», y al terminar pasan a «Hecho» (la etiqueta Publicado/Borrador,
+  al estado nuevo) con la misma disolución en píxeles que las tarjetas del sitio público.
 
 ## Stack
 
@@ -36,7 +39,9 @@ src/
   lib/
     api.js                      capa de datos: llamadas REST (y un mock con localStorage)
     session.js                  token y usuario en sessionStorage
+    pixelDissolve.js            disolución en píxeles, copiada de la del frontend
   components/
+    DoneButton/DoneButton.jsx   botón que pasa de su estado de carga a «Hecho» con esa disolución
     Login/Login.jsx             pantalla de acceso
     Dashboard/
       Dashboard.jsx             estado general: artículos, papelera, avisos y confirmaciones

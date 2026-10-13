@@ -1,4 +1,5 @@
 import Money from './Money'
+import DoneButton from '../DoneButton/DoneButton'
 import { DAY_MS, TRASH_DAYS } from '../../lib/api'
 
 function daysLeft(article) {
@@ -13,7 +14,9 @@ function daysLeft(article) {
   )
 }
 
-export default function TrashCard({ article, onRestore, onDestroy }) {
+export default function TrashCard({ article, status, onRestore, onDestroy }) {
+  // Mientras se restaura: «Restaurando…» y luego «Hecho», antes de que la tarjeta salga.
+  const busy = !!status
   const left = daysLeft(article)
   const pct = Math.round((left / TRASH_DAYS) * 100)
   const deletedOn = new Date(article.deletedAt).toLocaleDateString('es-ES', {
@@ -48,15 +51,32 @@ export default function TrashCard({ article, onRestore, onDestroy }) {
         />
       </div>
       <div className="card-trash__actions">
-        <button className="btn-ghost btn-sm" onClick={onRestore} type="button">
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            restore_from_trash
-          </span>
-          Restaurar
-        </button>
+        <DoneButton
+          className={'btn-ghost btn-sm' + (busy ? ' is-busy' : '')}
+          disabled={busy}
+          done={status === 'done'}
+          doneClassName="btn-primary btn-sm"
+          onClick={onRestore}
+          type="button"
+        >
+          {busy ? (
+            'Restaurando…'
+          ) : (
+            <>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 18 }}
+              >
+                restore_from_trash
+              </span>
+              Restaurar
+            </>
+          )}
+        </DoneButton>
         <button
           aria-label={'Borrar definitivamente ' + article.name}
           className="btn-danger btn-sm"
+          disabled={busy}
           onClick={onDestroy}
           type="button"
         >

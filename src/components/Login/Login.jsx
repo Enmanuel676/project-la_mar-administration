@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../../lib/api'
+import DoneButton from '../DoneButton/DoneButton'
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('')
@@ -7,6 +8,8 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // Sesión ya recibida ({ token, user }): el botón pasa a «Hecho» y, al terminar, se entra.
+  const [logged, setLogged] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -17,13 +20,9 @@ export default function Login({ onLogin }) {
     setError('')
     setBusy(true)
     try {
-      const res = await api.login(email, password)
-      onLogin(res.token, res.user)
-      setEmail('')
-      setPassword('')
+      setLogged(await api.login(email, password))
     } catch (ex) {
       setError(ex.message)
-    } finally {
       setBusy(false)
     }
   }
@@ -91,9 +90,11 @@ export default function Login({ onLogin }) {
               {error}
             </p>
           )}
-          <button
+          <DoneButton
             className={'btn-primary btn-block' + (busy ? ' is-busy' : '')}
             disabled={busy}
+            done={!!logged}
+            onDone={() => onLogin(logged.token, logged.user)}
             type="submit"
           >
             {busy ? (
@@ -109,7 +110,7 @@ export default function Login({ onLogin }) {
                 </span>
               </>
             )}
-          </button>
+          </DoneButton>
         </form>
       </div>
       <p className="login__foot">© La Mar Joyeria</p>

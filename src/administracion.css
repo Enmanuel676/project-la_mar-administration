@@ -377,6 +377,61 @@ textarea.field {
   transition: clip-path 0.2s linear;
 }
 
+/* Botón con estados (DoneButton.jsx). El envoltorio ocupa el sitio del botón y, al terminar,
+   la cara «Hecho» se pone encima, fuera del botón, para no heredar la opacidad de .is-busy. */
+.done-btn {
+  position: relative;
+  display: flex;
+}
+
+.done-btn > button {
+  flex: 1;
+}
+
+/* La cara nueva aparece en píxeles como las tarjetas del frontend: la máscara y las chispas
+   las genera pixelDissolve.js. Toma el tamaño del botón que tapa. */
+.done-btn__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  pointer-events: none;
+  will-change: filter;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* En la etiqueta Publicado/Borrador el texto nuevo puede ser más largo que el anterior: la
+   cara crece hacia la izquierda, porque el lateral de la tarjeta alinea a la derecha. */
+.done-btn__face.badge {
+  left: auto;
+  min-width: 100%;
+}
+
+/* .badge-on es translúcida: la cara la lleva ya mezclada con el fondo de la tarjeta para
+   tapar la etiqueta anterior. */
+.done-btn__face.badge-on {
+  background: color-mix(
+    in srgb,
+    var(--color-primary) 14%,
+    var(--color-surface-container-low)
+  );
+}
+
+/* Lienzo con las «chispas» de la transición */
+.done-btn__fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  image-rendering: pixelated;
+}
+
 .icon-btn {
   display: inline-flex;
   flex-shrink: 0;
@@ -776,7 +831,7 @@ textarea.field {
   gap: var(--space-sm);
 }
 
-.card-trash__actions .btn-ghost {
+.card-trash__actions .done-btn {
   flex: 1;
 }
 
@@ -899,7 +954,7 @@ textarea.field {
   box-shadow: 0 -4px 24px #170b0999;
 }
 
-.actionbar .btn-primary {
+.actionbar .done-btn {
   flex: 1;
 }
 
