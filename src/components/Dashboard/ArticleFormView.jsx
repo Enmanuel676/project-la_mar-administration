@@ -5,6 +5,7 @@ import {
   MAX_IMAGE_MB,
   MAX_IMAGE_SIDE,
 } from '../../lib/api'
+import { hasErrors, LIMITS, validateArticle } from '../../lib/validation'
 import DoneButton from '../DoneButton/DoneButton'
 
 const MB = 1024 * 1024
@@ -93,9 +94,44 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
   const [imageFile, setImageFile] = useState(null)
   const [removeImage, setRemoveImage] = useState(false)
   const fileInputRef = useRef(null)
+  // Campos de los que ya se ha salido: solo esos muestran su error (ver Login).
+  const [touched, setTouched] = useState({})
+
+  const errors = validateArticle(form)
+  const invalid = hasErrors(errors)
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  function touch(field) {
+    setTouched((t) => ({ ...t, [field]: true }))
+  }
+
+  // Propiedades comunes de un campo validado: marca de error, aviso para lectores de
+  // pantalla y salida del campo. `fieldError` pinta el mensaje debajo.
+  function validation(field) {
+    const shown = touched[field] && errors[field]
+    return {
+      'aria-describedby': shown ? `f-${field}-error` : undefined,
+      'aria-invalid': shown ? true : undefined,
+      onBlur: () => touch(field),
+    }
+  }
+
+  function invalidClass(field, base) {
+    return (
+      base + (touched[field] && errors[field] ? ' ' + base + '--invalid' : '')
+    )
+  }
+
+  function fieldError(field) {
+    if (!touched[field] || !errors[field]) return null
+    return (
+      <span className="admin__field-error" id={`f-${field}-error`}>
+        {errors[field]}
+      </span>
+    )
   }
 
   // La vista previa de una foto nueva es una URL temporal (blob:) que ocupa memoria hasta que
@@ -163,8 +199,8 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
       removeImage: removeImage && !imageFile,
       published: form.published,
     }
-    if (!data.name || !(data.price >= 0)) {
-      setError('El nombre y un precio válido son obligatorios.')
+    if (invalid) {
+      setTouched(Object.fromEntries(Object.keys(errors).map((k) => [k, true])))
       return
     }
     setError('')
@@ -270,24 +306,27 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
         <label>
           <span className="admin__label">Nombre *</span>
           <input
-            className="field"
-            maxLength={80}
+            {...validation('name')}
+            className={invalidClass('name', 'field')}
+            maxLength={LIMITS.name}
             onChange={(e) => update('name', e.target.value)}
             placeholder="L'Abysse Vert"
             required
             type="text"
             value={form.name}
           />
+          {fieldError('name')}
         </label>
         <div>
           <label className="admin__label" htmlFor="f-price">
             Precio *
           </label>
-          <div className="price-group">
+          <div className={invalidClass('price', 'price-group')}>
             <span aria-hidden="true" className="price-sign">
               $
             </span>
             <input
+              {...validation('price')}
               aria-label="Precio"
               className="price-input"
               id="f-price"
@@ -310,13 +349,16 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
               <option value="CUP">CUP</option>
             </select>
           </div>
-          <p className="admin__hint">{CURRENCIES[form.currency]}</p>
+          {fieldError('price') || (
+            <p className="admin__hint">{CURRENCIES[form.currency]}</p>
+          )}
         </div>
         <div className="form__row">
           <label>
             <span className="admin__label">Stock</span>
             <input
-              className="field"
+              {...validation('stock')}
+              className={invalidClass('stock', 'field')}
               inputMode="numeric"
               min="0"
               onChange={(e) => update('stock', e.target.value)}
@@ -325,6 +367,7 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
               type="number"
               value={form.stock}
             />
+            {fieldError('stock')}
           </label>
           <label>
             <span className="admin__label">Categoría</span>
@@ -344,32 +387,40 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
         <label>
           <span className="admin__label">Colección</span>
           <input
-            className="field"
+            {...validation('collection')}
+            className={invalidClass('collection', 'field')}
+            maxLength={LIMITS.collection}
             onChange={(e) => update('collection', e.target.value)}
             placeholder="Collection Océano"
             type="text"
             value={form.collection}
           />
+          {fieldError('collection')}
         </label>
         <label>
           <span className="admin__label">Materiales</span>
           <input
-            className="field"
+            {...validation('materials')}
+            className={invalidClass('materials', 'field')}
+            maxLength={LIMITS.materials}
             onChange={(e) => update('materials', e.target.value)}
             placeholder="Émeraude 4.2 ct · Or rose 18k"
             type="text"
             value={form.materials}
           />
+          {fieldError('materials')}
         </label>
         <label>
           <span className="admin__label">Descripción</span>
           <textarea
-            className="field"
-            maxLength={600}
+            {...validation('description')}
+            className={invalidClass('description', 'field')}
+            maxLength={LIMITS.description}
             onChange={(e) => update('description', e.target.value)}
             placeholder="Describe la pieza…"
             value={form.description}
           />
+          {fieldError('description')}
         </label>
         <label className="form__publish">
           <span>
@@ -408,7 +459,7 @@ export default function ArticleFormView({ article, onBack, onSave, onDelete }) {
             (saving ? ' is-busy' : '') +
             (progress !== null ? ' btn-progress' : '')
           }
-          disabled={saving}
+          disabled={saving || invalid}
           done={saved}
           form="article-form"
           onDone={onBack}

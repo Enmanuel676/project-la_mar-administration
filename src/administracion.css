@@ -107,6 +107,14 @@ body.admin-body {
   color: var(--color-outline);
 }
 
+/* Error de un campo concreto, justo debajo de él */
+.admin__field-error {
+  display: block;
+  margin-top: var(--space-xs);
+  font: var(--type-body-sm);
+  color: var(--color-error);
+}
+
 /* ---------- Login ---------- */
 .login {
   display: flex;
@@ -155,6 +163,17 @@ body.admin-body {
 
 .login__password {
   position: relative;
+}
+
+/* Aviso que llega de fuera del formulario, como una sesión caducada */
+.login__notice {
+  margin-bottom: var(--space-md);
+  padding: 0.75rem 0.875rem;
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  font: var(--type-body-sm);
+  color: var(--color-on-surface);
 }
 
 .login__password .field {
@@ -271,6 +290,11 @@ body.admin-body {
 .field:focus {
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
+}
+
+.field--invalid,
+.field--invalid:focus {
+  border-color: var(--color-error);
 }
 
 select.field {
@@ -565,6 +589,11 @@ textarea.field {
 .price-group:focus-within {
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
+}
+
+.price-group--invalid,
+.price-group--invalid:focus-within {
+  border-color: var(--color-error);
 }
 
 .price-sign {
@@ -972,6 +1001,7 @@ textarea.field {
 }
 
 .confirm__sheet {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -988,6 +1018,23 @@ textarea.field {
   margin: 0 auto;
   border-radius: 9999px;
   background: var(--color-surface-variant);
+}
+
+/* Cruz arriba a la derecha. Un tono más claro que la hoja, que tiene el mismo fondo que .icon-btn */
+.confirm__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: var(--color-surface-container-high);
+}
+
+.confirm__close:hover {
+  background: var(--color-surface-container-highest);
+}
+
+.confirm__close:disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .confirm__text {
