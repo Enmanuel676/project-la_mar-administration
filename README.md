@@ -1,5 +1,7 @@
 # Frontend · Administración La Mar
 
+**Web en producción:** <https://admin.lamarjoyeria.mooo.com>
+
 Panel de administración de la joyería **La Mar**. Desde aquí se gestiona el catálogo que ve el
 sitio público (`project-la_mar-frontend`): se crean, editan, publican y eliminan artículos, con
 su foto. Habla con la API de `project-la_mar-backend`.
