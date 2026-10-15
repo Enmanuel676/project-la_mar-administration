@@ -42,6 +42,16 @@ export const IMAGE_TYPES = [
 export const MAX_IMAGE_MB = 20
 export const MAX_IMAGE_SIDE = 1600
 
+export const SESSION_EXPIRED_MESSAGE =
+  'Tu sesión ha caducado. Vuelve a iniciar sesión.'
+
+// Quién reacciona cuando caduca la sesión (App: vuelve al login). Se avisa desde aquí, el
+// único sitio que ve todas las respuestas, para que dé igual qué acción se estaba haciendo.
+let onSessionExpired = null
+export function setSessionExpiredHandler(handler) {
+  onSessionExpired = handler
+}
+
 // El backend responde los errores como { message }. Se muestra solo ese texto, no el JSON crudo.
 async function errorMessage(res) {
   try {
@@ -109,7 +119,8 @@ async function http(method, path, body, onProgress) {
   // contraseña incorrecta, y ahí se muestra el mensaje del backend.
   if (res.status === 401 && token) {
     clearSession()
-    throw new Error('Sesión caducada. Vuelve a iniciar sesión.')
+    if (onSessionExpired) onSessionExpired()
+    throw new Error(SESSION_EXPIRED_MESSAGE)
   }
   // nginx corta lo que pasa de su client_max_body_size antes de que llegue al backend, y
   // responde con una página HTML: sin esto el panel solo mostraría "Error 413".

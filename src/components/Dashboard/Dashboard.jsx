@@ -49,9 +49,9 @@ export default function Dashboard({ onLogout }) {
         setArticles(list)
         setDeleted(trash)
       } catch (ex) {
+        // Una sesión caducada ya la resuelve App (vuelve al login con el aviso).
         if (ignore) return
         pushToast(ex.message, 'error')
-        if (ex.message.indexOf('Sesión') >= 0) onLogout()
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -59,7 +59,7 @@ export default function Dashboard({ onLogout }) {
     return () => {
       ignore = true
     }
-  }, [onLogout, pushToast])
+  }, [pushToast])
 
   const editingArticle = editingId
     ? articles.find((a) => a.id === editingId) || null
