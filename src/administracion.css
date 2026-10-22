@@ -239,6 +239,17 @@ body.admin-body {
   justify-content: space-between;
 }
 
+.topbar__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.topbar__greeting {
+  margin: 0.15rem 0 0.25rem;
+  font: var(--type-body-sm);
+  color: var(--color-on-surface-variant);
+}
+
 .search {
   position: relative;
   margin-top: 0.75rem;
@@ -1123,4 +1134,140 @@ textarea.field {
   .skeleton {
     animation: none;
   }
+}
+
+/* ---------- Registro ---------- */
+.register {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--margin-mobile);
+}
+
+.register__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.register__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: var(--space-xl);
+}
+
+.register__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 5.5rem;
+  border-radius: 9999px;
+}
+
+.register__logo {
+}
+
+.register__name {
+  display: block;
+  font: var(--type-headline-md);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.register__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.register__password {
+  position: relative;
+}
+
+.register__password .field {
+  padding-right: 3rem;
+}
+
+.register__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  transform: translateY(-50%);
+  color: var(--color-outline);
+}
+
+.register__actions {
+  margin-top: var(--space-sm);
+}
+
+.register__actions .btn-ghost {
+  width: 100%;
+  justify-content: center;
+}
+
+.register__foot {
+  padding: var(--space-md) 0;
+  text-align: center;
+  font: var(--type-body-sm);
+  color: var(--color-outline);
+}
+
+/* Botón de registro en Login */
+.login__actions {
+  margin-top: var(--space-sm);
+}
+
+.login__actions .btn-ghost {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Formulario con dos columnas */
+.form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* ---------- Vista de Usuarios ---------- */
+.admin__view--users {
+  padding-bottom: 2rem;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: var(--space-md) var(--margin-mobile) 0;
+}
+
+.user-card {
+  align-items: center;
+}
+
+.user-card__avatar {
+  background: var(--color-surface-container-high);
+  color: var(--color-primary);
+}
+
+.user-card__avatar .material-symbols-outlined {
+  font-size: 28px;
+}
+
+.user-card__actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.user-card .card__side {
+  flex-direction: row;
+  align-items: center;
 }

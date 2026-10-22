@@ -4,7 +4,7 @@ import { hasErrors, LIMITS, validateLogin } from '../../lib/validation'
 import DoneButton from '../DoneButton/DoneButton'
 
 // `notice`: aviso que llega de fuera, por ejemplo que la sesión anterior caducó.
-export default function Login({ onLogin, notice }) {
+export default function Login({ onLogin, notice, onShowRegister }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -127,6 +127,15 @@ export default function Login({ onLogin, notice }) {
               {error}
             </p>
           )}
+          <div className="login__actions">
+            <button
+              className="btn-ghost"
+              onClick={onShowRegister}
+              type="button"
+            >
+              ¿No tienes cuenta? Regístrate
+            </button>
+          </div>
           <DoneButton
             className={'btn-primary btn-block' + (busy ? ' is-busy' : '')}
             disabled={busy || invalid}
