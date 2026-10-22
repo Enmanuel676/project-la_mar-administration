@@ -85,7 +85,7 @@ Endpoints que usa:
 | POST | `/users/:id/change-password` | Cambiar contraseña |
 
 Todas las peticiones van con `Authorization: Bearer <token>` y `credentials: 'include'`
-(para la cookie de sesión). Un `401` con sesión iniciada cierra la sesión y avisa.
+(para la cookie de sesión). **Las rutas del panel son visibles en la barra del navegador**: `/login`, `/register` y `/` (Dashboard), para que puedas navegar directamente entre secciones y ver la URL completa en cualquier momento. Un `401` con sesión iniciada cierra la sesión y avisa.
 
 ## Fotos
 

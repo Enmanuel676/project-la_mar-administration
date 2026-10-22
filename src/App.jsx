@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Login from './components/Login/Login'
 import Register from './components/Register/Register'
 import Dashboard from './components/Dashboard/Dashboard'
@@ -16,20 +17,28 @@ export default function App() {
     }
     return token ? { token, user } : null
   })
+  const navigate = useNavigate()
+  const location = useLocation()
   // Aviso para la pantalla de login (p. ej. que la sesión caducó a mitad de una acción).
   const [loginNotice, setLoginNotice] = useState('')
-  // Estado para manejar si mostrar Login o Register
-  const [showRegister, setShowRegister] = useState(false)
 
   // Si el servidor rechaza el token en cualquier petición, se vuelve al login con el aviso,
   // en vez de seguir en el catálogo con todas las acciones fallando.
   useEffect(() => {
     setSessionExpiredHandler(() => {
       setSessionState(null)
+      navigate('/login')
       setLoginNotice(SESSION_EXPIRED_MESSAGE)
     })
     return () => setSessionExpiredHandler(null)
-  }, [])
+  }, [navigate])
+
+  // Verificar sesión al cambiar de ruta
+  useEffect(() => {
+    if (location.pathname !== '/login' && location.pathname !== '/register' && !session) {
+      navigate('/login')
+    }
+  }, [location, session, navigate])
 
   // Sincronizar la sesión al cargar: si un admin cambió el rol del usuario,
   // se actualiza el estado local sin tener que cerrar sesión.
@@ -51,13 +60,14 @@ export default function App() {
       .catch(() => {
         // Si falla la sincronización, seguimos con la sesión actual
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Solo al montar el componente
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Solo al montar el componente (session se lee solo al montar)
   }, [])
 
   function handleLogin(token, user) {
     setSession(token, user)
     setSessionState({ token, user })
     setLoginNotice('')
+    navigate('/')
   }
 
   function handleLogout() {
@@ -67,32 +77,24 @@ export default function App() {
     clearSession()
     setSessionState(null)
     setLoginNotice('')
+    navigate('/login')
   }
 
   function handleRegisterSuccess(session) {
     // El backend devuelve { token, user } igual que el login: se inicia sesión directamente.
     setSession(session.token, session.user)
     setSessionState({ token: session.token, user: session.user })
-    setShowRegister(false)
     setLoginNotice('')
+    navigate('/')
   }
 
   return (
     <div className="admin">
-      {session ? (
-        <Dashboard onLogout={handleLogout} currentUser={session.user} />
-      ) : showRegister ? (
-        <Register
-          onRegister={handleRegisterSuccess}
-          onBackToLogin={() => setShowRegister(false)}
-        />
-      ) : (
-        <Login
-          notice={loginNotice}
-          onLogin={handleLogin}
-          onShowRegister={() => setShowRegister(true)}
-        />
-      )}
+      <Routes>
+        <Route path="/login" element={<Login notice={loginNotice} onLogin={handleLogin} onShowRegister={() => navigate('/register')} />} />
+        <Route path="/register" element={<Register onRegister={handleRegisterSuccess} onBackToLogin={() => navigate('/login')} />} />
+        <Route path="/*" element={session ? <Dashboard onLogout={handleLogout} currentUser={session.user} /> : <Login notice={loginNotice} onLogin={handleLogin} onShowRegister={() => navigate('/register')} />} />
+      </Routes>
     </div>
   )
 }
