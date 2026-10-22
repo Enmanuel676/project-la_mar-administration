@@ -266,24 +266,59 @@ const mock = (function () {
         throw new Error('Correo o contraseña incorrectos.')
       })
     },
+    register: function (firstName, lastName, email, password) {
+      // Mock: simula un registro exitoso
+      return delay({
+        token: 'mock-' + Date.now(),
+        user: { email: email, name: firstName + ' ' + lastName, role: 'user', isAdmin: false },
+      })
+    },
+    // Gestión de usuarios (mock)
+    listUsers: function () {
+      return delay([
+        { id: 'u1', email: 'daralibatista@gmail.com', name: 'Dara Libatista', role: 'admin', isAdmin: true, createdAt: Date.now() },
+        { id: 'u2', email: 'enmanuel676hd@gmail.com', name: 'Enmanuel HD', role: 'admin', isAdmin: true, createdAt: Date.now() },
+        { id: 'u3', email: 'usuario@ejemplo.com', name: 'Usuario Ejemplo', role: 'user', isAdmin: false, createdAt: Date.now() },
+      ])
+    },
+    getUser: function (id) {
+      return delay({ id: id, email: 'usuario@ejemplo.com', name: 'Usuario Ejemplo', role: 'user', isAdmin: false, createdAt: Date.now() })
+    },
+    updateUser: function (id, data) {
+      return delay({ id: id, ...data })
+    },
+    deleteUser: function (id) {
+      return delay(null)
+    },
+    changeUserPassword: function (id, password) {
+      return delay(null)
+    },
     list: function () {
       purge()
+      const activeItems = items.filter(function (a) {
+        return !a.deletedAt
+      })
+      // Añadir información del owner para simular el populate
       return delay(
-        items.filter(function (a) {
-          return !a.deletedAt
+        activeItems.map(function (a) {
+          return { ...a, ownerName: 'Admin', ownerEmail: 'admin@lamar.com' }
         }),
       )
     },
     listDeleted: function () {
       purge()
+      const deletedItems = items
+        .filter(function (a) {
+          return a.deletedAt
+        })
+        .sort(function (a, b) {
+          return b.deletedAt - a.deletedAt
+        })
+      // Añadir información del owner para simular el populate
       return delay(
-        items
-          .filter(function (a) {
-            return a.deletedAt
-          })
-          .sort(function (a, b) {
-            return b.deletedAt - a.deletedAt
-          }),
+        deletedItems.map(function (a) {
+          return { ...a, ownerName: 'Admin', ownerEmail: 'admin@lamar.com' }
+        }),
       )
     },
     create: function (data) {
@@ -339,6 +374,30 @@ export const api = USE_MOCK
   : {
       login: function (email, password) {
         return http('POST', '/auth/login', { email: email, password: password })
+      },
+      register: function (firstName, lastName, email, password) {
+        return http('POST', '/auth/register', {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          password: password,
+        })
+      },
+      // Gestión de usuarios (solo admin)
+      listUsers: function () {
+        return http('GET', '/users')
+      },
+      getUser: function (id) {
+        return http('GET', '/users/' + encodeURIComponent(id))
+      },
+      updateUser: function (id, data) {
+        return http('PUT', '/users/' + encodeURIComponent(id), data)
+      },
+      deleteUser: function (id) {
+        return http('DELETE', '/users/' + encodeURIComponent(id))
+      },
+      changeUserPassword: function (id, password) {
+        return http('POST', '/users/' + encodeURIComponent(id) + '/change-password', { password: password })
       },
       list: function () {
         return http('GET', '/articles')
