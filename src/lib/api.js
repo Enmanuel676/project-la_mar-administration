@@ -109,6 +109,7 @@ async function http(method, path, body, onProgress) {
   // contraseña incorrecta, y ahí se muestra el mensaje del backend.
   if (res.status === 401 && token) {
     clearSession()
+    window.dispatchEvent(new Event('unauthorized'))
     throw new Error('Sesión caducada. Vuelve a iniciar sesión.')
   }
   // nginx corta lo que pasa de su client_max_body_size antes de que llegue al backend, y

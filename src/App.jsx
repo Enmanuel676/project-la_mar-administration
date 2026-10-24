@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Login from './components/Login/Login'
 import Dashboard from './components/Dashboard/Dashboard'
 import { clearSession, getToken, getUser, setSession } from './lib/session'
@@ -14,10 +14,15 @@ export default function App() {
     setSessionState({ token, user })
   }
 
-  function handleLogout() {
+  const handleLogout = () => {
     clearSession()
     setSessionState(null)
   }
+
+  useEffect(() => {
+    window.addEventListener('unauthorized', handleLogout)
+    return () => window.removeEventListener('unauthorized', handleLogout)
+  }, [])
 
   return (
     <div className="admin">
