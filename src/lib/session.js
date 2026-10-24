@@ -27,6 +27,16 @@ export function setSession(token, user) {
   }
 }
 
+// Actualiza solo los datos del usuario en la sesión (sin cambiar el token).
+// Útil cuando el backend devuelve información actualizada del usuario (p.ej. cambio de rol).
+export function updateSessionUser(user) {
+  try {
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user))
+  } catch {
+    /* almacenamiento no disponible */
+  }
+}
+
 export function clearSession() {
   try {
     sessionStorage.removeItem(TOKEN_KEY)

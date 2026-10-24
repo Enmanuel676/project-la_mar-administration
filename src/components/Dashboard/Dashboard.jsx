@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../lib/api'
+import { getUser, updateSessionUser } from '../../lib/session'
 import { DONE_MS } from '../DoneButton/DoneButton'
 import CatalogView from './CatalogView'
 import ArticleFormView from './ArticleFormView'
 import ConfirmDialog from './ConfirmDialog'
 import Toasts from './Toasts'
+import Register from '../Register/Register'
+import UsersView from '../UsersView/UsersView'
 
 // Las acciones cambian la lista cuando su botón ya ha pasado a «Hecho» (DoneButton): antes,
 // la tarjeta o el diálogo desaparecerían sin que se viera la transición. Se espera aquí y no
@@ -14,13 +17,21 @@ function settle() {
   return new Promise((resolve) => setTimeout(resolve, DONE_MS))
 }
 
-export default function Dashboard({ onLogout }) {
+export default function Dashboard({ onLogout, currentUser }) {
   const [articles, setArticles] = useState([])
   const [deleted, setDeleted] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
-  const [view, setView] = useState('catalog') // 'catalog' | 'form'
+  const [view, setView] = useState('catalog') // 'catalog' | 'form' | 'register' | 'users'
+  // Un usuario es admin por su email O por su rol
+  const isAdmin =
+    currentUser &&
+    (currentUser.isAdmin ||
+      (currentUser.email &&
+        ['darelisbatistag@gmail.com', 'enmanuel676hd@gmail.com'].includes(
+          currentUser.email.toLowerCase().trim(),
+        )))
   const [editingId, setEditingId] = useState(null)
   const [confirm, setConfirm] = useState(null) // { article, permanent, busy, done }
   // Tarjetas que se están publicando o restaurando: { [id]: 'busy' | 'done' }
@@ -49,9 +60,9 @@ export default function Dashboard({ onLogout }) {
         setArticles(list)
         setDeleted(trash)
       } catch (ex) {
+        // Una sesión caducada ya la resuelve App (vuelve al login con el aviso).
         if (ignore) return
         pushToast(ex.message, 'error')
-        if (ex.message.indexOf('Sesión') >= 0) onLogout()
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -59,7 +70,34 @@ export default function Dashboard({ onLogout }) {
     return () => {
       ignore = true
     }
-  }, [onLogout, pushToast])
+  }, [pushToast])
+
+  // Sincronizar la sesión cada 60 segundos: si un admin cambió el rol del usuario
+  // actual, se actualiza la sesión y se avisa para que recargue la página.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      api
+        .getMe()
+        .then((freshUser) => {
+          const current = getUser()
+          if (
+            current &&
+            (current.role !== freshUser.role ||
+              current.isAdmin !== freshUser.isAdmin)
+          ) {
+            updateSessionUser(freshUser)
+            pushToast(
+              'Tus permisos han cambiado. Recarga la página para aplicarlos.',
+              'info',
+            )
+          }
+        })
+        .catch(() => {
+          // Ignorar errores de sincronización
+        })
+    }, 60000) // 60 segundos
+    return () => clearInterval(interval)
+  }, [pushToast])
 
   const editingArticle = editingId
     ? articles.find((a) => a.id === editingId) || null
@@ -68,6 +106,19 @@ export default function Dashboard({ onLogout }) {
   function openForm(article) {
     setEditingId(article ? article.id : null)
     setView('form')
+  }
+
+  function openRegister() {
+    setView('register')
+  }
+
+  function openUsers() {
+    setView('users')
+  }
+
+  function handleRegisterSuccess() {
+    pushToast('Usuario registrado correctamente')
+    setView('catalog')
   }
 
   function setStatus(id, status) {
@@ -168,9 +219,11 @@ export default function Dashboard({ onLogout }) {
       {view === 'catalog' ? (
         <CatalogView
           articles={articles}
+          currentUser={currentUser}
           deleted={deleted}
           filter={filter}
           loading={loading}
+          isAdmin={isAdmin}
           onAdd={() => openForm(null)}
           onDelete={(a) => requestDelete(a, false)}
           onDestroy={(a) => requestDelete(a, true)}
@@ -178,10 +231,23 @@ export default function Dashboard({ onLogout }) {
           onFilterChange={setFilter}
           onLogout={onLogout}
           onQueryChange={setQuery}
+          onRegister={openRegister}
+          onUsers={openUsers}
           onRestore={restoreArticle}
           onTogglePublished={togglePublished}
           pending={pending}
           query={query}
+        />
+      ) : view === 'users' ? (
+        <UsersView
+          onBack={() => setView('catalog')}
+          currentUser={currentUser}
+          isAdmin={isAdmin}
+        />
+      ) : view === 'register' ? (
+        <Register
+          onRegister={handleRegisterSuccess}
+          onBackToLogin={() => setView('catalog')}
         />
       ) : (
         <ArticleFormView

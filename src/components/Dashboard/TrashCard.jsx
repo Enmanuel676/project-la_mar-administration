@@ -38,6 +38,7 @@ export default function TrashCard({ article, status, onRestore, onDestroy }) {
           <span className="card__name">{article.name}</span>
           <span className="card-trash__date">
             Eliminado el {deletedOn} · <Money article={article} />
+            {article.ownerName && ` · Creador: ${article.ownerName}`}
           </span>
         </div>
         <span className={'badge' + (left <= 5 ? ' badge-warn' : '')}>

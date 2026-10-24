@@ -21,7 +21,7 @@
  * Article = { id, name, price, currency ('USD' | 'CUP'), stock, category, collection, materials,
  *             description, image, published, updatedAt, deletedAt? }
  * ================================================================== */
-import { getToken, clearSession } from './session'
+import { getToken, getUser, clearSession } from './session'
 
 const USE_MOCK = false
 // En el servidor se compila con VITE_API_URL (p. ej. https://api.lamarjoyeria.mooo.com/api).
@@ -42,6 +42,16 @@ export const IMAGE_TYPES = [
 export const MAX_IMAGE_MB = 20
 export const MAX_IMAGE_SIDE = 1600
 
+export const SESSION_EXPIRED_MESSAGE =
+  'Tu sesión ha caducado. Vuelve a iniciar sesión.'
+
+// Quién reacciona cuando caduca la sesión (App: vuelve al login). Se avisa desde aquí, el
+// único sitio que ve todas las respuestas, para que dé igual qué acción se estaba haciendo.
+let onSessionExpired = null
+export function setSessionExpiredHandler(handler) {
+  onSessionExpired = handler
+}
+
 // El backend responde los errores como { message }. Se muestra solo ese texto, no el JSON crudo.
 async function errorMessage(res) {
   try {
@@ -59,6 +69,8 @@ function upload(method, url, headers, form, onProgress) {
   return new Promise(function (resolve, reject) {
     const xhr = new XMLHttpRequest()
     xhr.open(method, url)
+    // withCredentials: que la petición cross-origin acepte y mande cookies (la de sesión).
+    xhr.withCredentials = true
     Object.entries(headers).forEach(function ([key, value]) {
       xhr.setRequestHeader(key, value)
     })
@@ -99,6 +111,9 @@ async function http(method, path, body, onProgress) {
             method,
             headers,
             body: isForm ? body : body ? JSON.stringify(body) : undefined,
+            // Sin esto el navegador descarta la cookie de sesión (Set-Cookie) que manda el
+            // login: la petición al backend es cross-origin (panel en otro puerto/dominio).
+            credentials: 'include',
           })
   } catch {
     throw new Error(
@@ -109,8 +124,8 @@ async function http(method, path, body, onProgress) {
   // contraseña incorrecta, y ahí se muestra el mensaje del backend.
   if (res.status === 401 && token) {
     clearSession()
-    window.dispatchEvent(new Event('unauthorized'))
-    throw new Error('Sesión caducada. Vuelve a iniciar sesión.')
+    if (onSessionExpired) onSessionExpired()
+    throw new Error(SESSION_EXPIRED_MESSAGE)
   }
   // nginx corta lo que pasa de su client_max_body_size antes de que llegue al backend, y
   // responde con una página HTML: sin esto el panel solo mostraría "Error 413".
@@ -256,24 +271,110 @@ const mock = (function () {
         throw new Error('Correo o contraseña incorrectos.')
       })
     },
+    register: function (firstName, lastName, email) {
+      // Mock: simula un registro exitoso
+      return delay({
+        token: 'mock-' + Date.now(),
+        user: {
+          email: email,
+          name: firstName + ' ' + lastName,
+          role: 'user',
+          isAdmin: false,
+        },
+      })
+    },
+    // Mock: obtener usuario actual (simula GET /users/me)
+    getMe: function () {
+      const user = getUser()
+      return delay(user || null)
+    },
+    // Mock: cerrar sesión en el servidor (borra la cookie; aquí solo se resuelve)
+    logout: function () {
+      return delay(null)
+    },
+    // Gestión de usuarios (mock)
+    listUsers: function () {
+      return delay([
+        {
+          id: 'u1',
+          email: 'darelisbatistag@gmail.com',
+          name: 'Dara Libatista',
+          role: 'admin',
+          isAdmin: true,
+          createdAt: Date.now(),
+        },
+        {
+          id: 'u2',
+          email: 'enmanuel676hd@gmail.com',
+          name: 'Enmanuel HD',
+          role: 'admin',
+          isAdmin: true,
+          createdAt: Date.now(),
+        },
+        {
+          id: 'u3',
+          email: 'usuario@ejemplo.com',
+          name: 'Usuario Ejemplo',
+          role: 'user',
+          isAdmin: false,
+          createdAt: Date.now(),
+        },
+      ])
+    },
+    getUser: function (id) {
+      return delay({
+        id: id,
+        email: 'usuario@ejemplo.com',
+        name: 'Usuario Ejemplo',
+        role: 'user',
+        isAdmin: false,
+        createdAt: Date.now(),
+      })
+    },
+    updateUser: function (id, data) {
+      // Actualizar el rol y recalcular isAdmin
+      const updated = { id: id, ...data }
+      if (data.role) {
+        updated.isAdmin =
+          data.role === 'admin' ||
+          ['darelisbatistag@gmail.com', 'enmanuel676hd@gmail.com'].includes(
+            data.email?.toLowerCase()?.trim(),
+          )
+      }
+      return delay(updated)
+    },
+    deleteUser: function () {
+      return delay(null)
+    },
+    changeUserPassword: function () {
+      return delay(null)
+    },
     list: function () {
       purge()
+      const activeItems = items.filter(function (a) {
+        return !a.deletedAt
+      })
+      // Añadir información del owner para simular el populate
       return delay(
-        items.filter(function (a) {
-          return !a.deletedAt
+        activeItems.map(function (a) {
+          return { ...a, ownerName: 'Admin', ownerEmail: 'admin@lamar.com' }
         }),
       )
     },
     listDeleted: function () {
       purge()
+      const deletedItems = items
+        .filter(function (a) {
+          return a.deletedAt
+        })
+        .sort(function (a, b) {
+          return b.deletedAt - a.deletedAt
+        })
+      // Añadir información del owner para simular el populate
       return delay(
-        items
-          .filter(function (a) {
-            return a.deletedAt
-          })
-          .sort(function (a, b) {
-            return b.deletedAt - a.deletedAt
-          }),
+        deletedItems.map(function (a) {
+          return { ...a, ownerName: 'Admin', ownerEmail: 'admin@lamar.com' }
+        }),
       )
     },
     create: function (data) {
@@ -329,6 +430,42 @@ export const api = USE_MOCK
   : {
       login: function (email, password) {
         return http('POST', '/auth/login', { email: email, password: password })
+      },
+      register: function (firstName, lastName, email, password) {
+        return http('POST', '/auth/register', {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          password: password,
+        })
+      },
+      // Datos del usuario autenticado (para sincronizar la sesión si cambió el rol)
+      getMe: function () {
+        return http('GET', '/users/me')
+      },
+      // Cierre de sesión en el servidor: borra la cookie de sesión del navegador
+      logout: function () {
+        return http('POST', '/auth/logout')
+      },
+      // Gestión de usuarios (solo admin)
+      listUsers: function () {
+        return http('GET', '/users')
+      },
+      getUser: function (id) {
+        return http('GET', '/users/' + encodeURIComponent(id))
+      },
+      updateUser: function (id, data) {
+        return http('PUT', '/users/' + encodeURIComponent(id), data)
+      },
+      deleteUser: function (id) {
+        return http('DELETE', '/users/' + encodeURIComponent(id))
+      },
+      changeUserPassword: function (id, password) {
+        return http(
+          'POST',
+          '/users/' + encodeURIComponent(id) + '/change-password',
+          { password: password },
+        )
       },
       list: function () {
         return http('GET', '/articles')
