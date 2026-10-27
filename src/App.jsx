@@ -33,10 +33,17 @@ export default function App() {
     return () => setSessionExpiredHandler(null)
   }, [navigate])
 
-  // Verificar sesión al cambiar de ruta
+  // Verificar sesión al cambiar de ruta (bidireccional):
+  // - Sin sesión: ir al login (salvo que ya estemos en login/registro).
+  // - Con sesión: si estamos en login/registro, ir al dashboard.
+  // Así, cuando otra pestaña inicia sesión (evento `storage` actualiza `session`),
+  // esta pestaña sale sola de la pantalla de login.
   useEffect(() => {
-    if (location.pathname !== '/login' && location.pathname !== '/register' && !session) {
+    if (!session && location.pathname !== '/login' && location.pathname !== '/register') {
       navigate('/login')
+    }
+    if (session && (location.pathname === '/login' || location.pathname === '/register')) {
+      navigate('/')
     }
   }, [location, session, navigate])
 
@@ -62,6 +69,29 @@ export default function App() {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Solo al montar el componente (session se lee solo al montar)
   }, [])
+
+  // Sincronización entre pestañas: cuando otra pestaña inicia o cierra sesión,
+  // esta pestaña reacciona al evento `storage` de localStorage.
+  useEffect(() => {
+    function onStorageChange(e) {
+      // Solo nos interesan los cambios de nuestras claves.
+      if (e.key !== 'lamar_token' && e.key !== 'lamar_user' && e.key !== null) return
+      const token = getToken()
+      const user = getUser()
+      if (token && user && user.email) {
+        // Hay sesión válida en localStorage: actualizar estado local.
+        setSessionState({ token, user })
+      } else {
+        // Se borró la sesión (logout en otra pestaña): volver al login.
+        setSessionState(null)
+        if (location.pathname !== '/login' && location.pathname !== '/register') {
+          navigate('/login')
+        }
+      }
+    }
+    window.addEventListener('storage', onStorageChange)
+    return () => window.removeEventListener('storage', onStorageChange)
+  }, [location.pathname, navigate])
 
   function handleLogin(token, user) {
     setSession(token, user)
