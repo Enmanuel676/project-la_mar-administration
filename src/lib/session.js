@@ -1,9 +1,12 @@
+// localStorage (no sessionStorage): la sesión se comparte entre todas las pestañas
+// del navegador. Si un usuario inicia sesión en una pestaña, las demás también
+// tienen acceso sin tener que volver a iniciar sesión.
 const TOKEN_KEY = 'lamar_token'
 const USER_KEY = 'lamar_user'
 
 export function getToken() {
   try {
-    return sessionStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
@@ -11,7 +14,7 @@ export function getToken() {
 
 export function getUser() {
   try {
-    const raw = sessionStorage.getItem(USER_KEY)
+    const raw = localStorage.getItem(USER_KEY)
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -20,8 +23,8 @@ export function getUser() {
 
 export function setSession(token, user) {
   try {
-    sessionStorage.setItem(TOKEN_KEY, token)
-    sessionStorage.setItem(USER_KEY, JSON.stringify(user))
+    localStorage.setItem(TOKEN_KEY, token)
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
   } catch {
     /* almacenamiento no disponible */
   }
@@ -31,7 +34,7 @@ export function setSession(token, user) {
 // Útil cuando el backend devuelve información actualizada del usuario (p.ej. cambio de rol).
 export function updateSessionUser(user) {
   try {
-    sessionStorage.setItem(USER_KEY, JSON.stringify(user))
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
   } catch {
     /* almacenamiento no disponible */
   }
@@ -39,8 +42,8 @@ export function updateSessionUser(user) {
 
 export function clearSession() {
   try {
-    sessionStorage.removeItem(TOKEN_KEY)
-    sessionStorage.removeItem(USER_KEY)
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
   } catch {
     /* almacenamiento no disponible */
   }
