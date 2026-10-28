@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './components/Login/Login'
 import Register from './components/Register/Register'
 import Dashboard from './components/Dashboard/Dashboard'
-import LoadingView from './components/LoadingView/LoadingView'
+import PageLoader from './components/PageLoader/PageLoader'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 import PublicRoute from './components/PublicRoute/PublicRoute'
 import { AuthProvider } from './components/AuthProvider'
@@ -120,37 +120,31 @@ function AppContent() {
       onShowRegister={() => navigate('/signup')}
     />
   )
+  const registerPage = (
+    <Register
+      onRegister={handleRegister}
+      onRegistered={handleAuthenticated}
+      onBackToLogin={() => navigate('/')}
+    />
+  )
   const dashboard =
-    catalog?.accountKey === accountKey && accountKey ? (
+    isAuthenticated && catalog?.accountKey === accountKey ? (
       <Dashboard
         key={accountKey}
         onLogout={handleLogout}
         onRegister={handleCreateUser}
         initialCatalog={{ ...catalog, retentionDays }}
       />
-    ) : (
-      <LoadingView />
-    )
+    ) : isAuthenticated ? (
+      <PageLoader isLoading={true} title="Cargando catálogo" />
+    ) : null
 
   return (
     <CurrentUserContext.Provider value={user}>
       <div className="admin">
         <Routes>
           <Route path="/signin" element={<PublicRoute element={loginPage} />} />
-          <Route
-            path="/signup"
-            element={
-              <PublicRoute
-                element={
-                  <Register
-                    onRegister={handleRegister}
-                    onRegistered={handleAuthenticated}
-                    onBackToLogin={() => navigate('/')}
-                  />
-                }
-              />
-            }
-          />
+          <Route path="/signup" element={<PublicRoute element={registerPage} />} />
           <Route path="/" element={isAuthenticated ? dashboard : loginPage} />
           <Route path="/*" element={<ProtectedRoute element={dashboard} />} />
         </Routes>
