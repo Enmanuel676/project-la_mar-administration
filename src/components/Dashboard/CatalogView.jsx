@@ -1,5 +1,6 @@
 import ArticleCard from './ArticleCard'
 import TrashCard from './TrashCard'
+import { useCurrentUser } from '../CurrentUserContext/CurrentUserContext'
 
 const FILTERS = [
   { key: 'all', label: 'Todos' },
@@ -10,8 +11,8 @@ const FILTERS = [
 
 export default function CatalogView({
   articles,
-  currentUser,
   deleted,
+  retentionDays,
   pending,
   loading,
   filter,
@@ -29,6 +30,7 @@ export default function CatalogView({
   onRegister,
   onUsers,
 }) {
+  const currentUser = useCurrentUser()
   const counts = {
     all: articles.length,
     published: articles.filter((a) => a.published).length,
@@ -147,8 +149,15 @@ export default function CatalogView({
         <div className="trash-info" id="trash-info">
           <span className="material-symbols-outlined">schedule</span>
           <p>
-            Los artículos eliminados se guardan <strong>30 días</strong>. Puedes
-            restaurarlos o borrarlos definitivamente; pasado ese plazo se
+            {retentionDays ? (
+              <>
+                Los artículos eliminados se guardan{' '}
+                <strong>{retentionDays} días</strong>.
+              </>
+            ) : (
+              'El plazo de conservación no está disponible en este momento.'
+            )}{' '}
+            Puedes restaurarlos o borrarlos definitivamente; pasado ese plazo se
             eliminan solos.
           </p>
         </div>
@@ -166,6 +175,7 @@ export default function CatalogView({
             inTrash ? (
               <TrashCard
                 article={a}
+                retentionDays={retentionDays}
                 key={a.id}
                 onDestroy={() => onDestroy(a)}
                 onRestore={() => onRestore(a)}

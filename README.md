@@ -76,18 +76,18 @@ la API real.
 
 Endpoints que usa:
 
-| Método | Ruta | Uso |
-| ------ | ---- | --- |
-| POST | `/auth/login` | Iniciar sesión |
-| POST | `/auth/register` | Crear cuenta |
-| POST | `/auth/logout` | Cerrar sesión (borra la cookie) |
-| GET | `/users/me` | Refrescar el usuario de la sesión |
-| GET/POST/PUT/DELETE | `/articles…` | Catálogo y papelera |
-| GET/PUT/DELETE | `/users…` | Gestión de usuarios (solo admins) |
-| POST | `/users/:id/change-password` | Cambiar contraseña |
+| Método              | Ruta                         | Uso                               |
+| ------------------- | ---------------------------- | --------------------------------- |
+| POST                | `/signin`                    | Iniciar sesión                    |
+| POST                | `/signup`                    | Crear cuenta                      |
+| POST                | `/auth/logout`               | Cerrar sesión (borra la cookie)   |
+| GET                 | `/users/me`                  | Refrescar el usuario de la sesión |
+| GET/POST/PUT/DELETE | `/articles…`                 | Catálogo y papelera               |
+| GET/PUT/DELETE      | `/users…`                    | Gestión de usuarios (solo admins) |
+| POST                | `/users/:id/change-password` | Cambiar contraseña                |
 
 Todas las peticiones van con `Authorization: Bearer <token>` y `credentials: 'include'`
-(para la cookie de sesión). **Las rutas del panel son visibles en la barra del navegador**: `/login`, `/register` y `/` (Dashboard), para que puedas navegar directamente entre secciones y ver la URL completa en cualquier momento. Un `401` con sesión iniciada cierra la sesión y avisa.
+(para la cookie de sesión). **Las rutas del panel son visibles en la barra del navegador**: `/signin`, `/signup` y `/` (Dashboard), para que puedas navegar directamente entre secciones y ver la URL completa en cualquier momento. Un `401` con sesión iniciada cierra la sesión y avisa.
 
 ## Fotos
 
@@ -100,3 +100,7 @@ el panel intenta reducirlo en el navegador antes de enviarlo.
 1. Definir `VITE_API_URL` y ejecutar `npm run build`.
 2. Servir `dist/` como sitio estático desde Nginx (`client_max_body_size 25m;`).
 3. Añadir el dominio del panel a `ALLOWED_ORIGINS` en el backend.
+
+## Auditoría y despliegue
+
+Consultar [la auditoría de ambos repositorios](docs/AUDITORIA.md) y [la guía para Google Cloud](docs/DESPLIEGUE_GOOGLE_CLOUD.md).

@@ -1,91 +1,168 @@
-import { useEffect, useState, useCallback } from 'react'
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import Login from './components/Login/Login'
 import Register from './components/Register/Register'
 import Dashboard from './components/Dashboard/Dashboard'
+import LoadingView from './components/LoadingView/LoadingView'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 import PublicRoute from './components/PublicRoute/PublicRoute'
-import AdminRoute from './components/AdminRoute/AdminRoute'
+import { AuthProvider } from './components/AuthProvider'
 import { useAuth } from './components/AuthProvider/hooks'
-import { SESSION_EXPIRED_MESSAGE, api, setSessionExpiredHandler } from './lib/api'
-import { clearSession, getToken, getUser, setSession, updateSessionUser } from './lib/session'
+import { CurrentUserContext } from './components/CurrentUserContext/CurrentUserContext'
+import {
+  SESSION_EXPIRED_MESSAGE,
+  api,
+  setSessionExpiredHandler,
+} from './lib/api'
 
-export default function App() {
-  const { isAuthenticated, user, token, loading, login: authLogin, logout: authLogout, register: authRegister, syncUser } = useAuth()
+function AppContent() {
+  const {
+    isAuthenticated,
+    user,
+    token,
+    completeLogin,
+    clearAuth,
+    logout,
+    syncUser,
+  } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  // Aviso para la pantalla de login (p. ej. que la sesión caducó a mitad de una acción).
   const [loginNotice, setLoginNotice] = useState('')
-  
-  // Para compatibilidad con el código existente que usa session.js directamente,
-  // sincronizamos el contexto con localStorage
-  const session = isAuthenticated && user ? { token, user } : null
+  const [catalog, setCatalog] = useState(null)
+  const [retentionDays, setRetentionDays] = useState(null)
+  const accountKey = token ? `${token}:${user?.role}:${!!user?.isAdmin}` : null
 
-  // Si el servidor rechaza el token en cualquier petición, se vuelve al login con el aviso,
-  // en vez de seguir en el catálogo con todas las acciones fallando.
   useEffect(() => {
     setSessionExpiredHandler(() => {
-      // Limpia la sesión del contexto
-      authLogout().catch(() => {})
-      navigate('/signin')
+      clearAuth()
       setLoginNotice(SESSION_EXPIRED_MESSAGE)
+      navigate('/', { replace: true })
     })
     return () => setSessionExpiredHandler(null)
-  }, [navigate, authLogout])
+  }, [navigate, clearAuth])
 
-  // Verificar sesión al cambiar de ruta (bidireccional):
-  // - Sin sesión: ir al login (salvo que ya estemos en login/registro).
-  // - Con sesión: si estamos en login/registro, ir al dashboard.
-  // Así, cuando otra pestaña inicia sesión (evento `storage` actualiza el contexto),
-  // esta pestaña sale sola de la pantalla de login.
-  // NOTA: La protección principal ahora la hacen los componentes ProtectedRoute y PublicRoute,
-  // pero mantenemos esta lógica para la sincronización entre pestañas.
-  useEffect(() => {
-    if (!isAuthenticated && !loading && location.pathname !== '/signin' && location.pathname !== '/signup') {
-      navigate('/signin')
-    }
-    if (isAuthenticated && !loading && (location.pathname === '/signin' || location.pathname === '/signup')) {
-      navigate('/')
-    }
-  }, [location, isAuthenticated, loading, navigate])
-
-  // Sincronizar la sesión al cargar: si un admin cambió el rol del usuario,
-  // se actualiza el contexto sin tener que cerrar sesión.
   useEffect(() => {
     if (!isAuthenticated) return
-    syncUser().catch(() => {
-      // Si falla la sincronización, seguimos con la sesión actual
-    })
-  }, [isAuthenticated, syncUser])
+    syncUser().catch(() => {})
+    const interval = setInterval(() => syncUser().catch(() => {}), 60000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated, token, syncUser])
 
-  // Sincronización entre pestañas: cuando otra pestaña inicia o cierra sesión,
-  // el AuthProvider ya maneja esto a través de su propio listener de storage.
-  // No necesitamos duplicar la lógica aquí ya que useAuth() devuelve el estado sincronizado.
+  useEffect(() => {
+    if (!accountKey) return
+    let ignore = false
+    Promise.allSettled([api.list(), api.listDeleted()]).then(
+      ([articles, deleted]) => {
+        if (ignore) return
+        const errors = [articles, deleted]
+          .filter((result) => result.status === 'rejected')
+          .map((result) => result.reason.message)
+        setCatalog({
+          accountKey,
+          articles: articles.status === 'fulfilled' ? articles.value : [],
+          deleted: deleted.status === 'fulfilled' ? deleted.value : [],
+          error: errors.join(' '),
+        })
+      },
+    )
+    api
+      .getConfig()
+      .then((config) => {
+        if (
+          !ignore &&
+          Number.isInteger(config.trashRetentionDays) &&
+          config.trashRetentionDays > 0
+        ) {
+          setRetentionDays(config.trashRetentionDays)
+        }
+      })
+      .catch(() => {
+        if (!ignore) setRetentionDays(null)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [accountKey])
 
-  function handleLogout() {
-    // Cerrar sesión en el contexto
-    authLogout().catch(() => {})
+  const handleLogin = useCallback(
+    (email, password) => api.login(email.trim(), password),
+    [],
+  )
+  const handleRegister = useCallback(
+    (firstName, lastName, email, password) =>
+      api.register(firstName, lastName, email.trim(), password),
+    [],
+  )
+  const handleCreateUser = useCallback(
+    (firstName, lastName, email, password) =>
+      api.createUser(firstName, lastName, email.trim(), password),
+    [],
+  )
+  const handleAuthenticated = useCallback(
+    (result) => {
+      setLoginNotice('')
+      completeLogin(result)
+      navigate('/', { replace: true })
+    },
+    [completeLogin, navigate],
+  )
+  const handleLogout = useCallback(() => {
+    logout()
+    setCatalog(null)
     setLoginNotice('')
-    navigate('/signin')
-  }
+    navigate('/', { replace: true })
+  }, [logout, navigate])
 
-  // Las funciones handleLogin y handleRegisterSuccess ya no se usan directamente
-  // porque Login y Register ahora navegan automáticamente usando el contexto.
-  // Las mantenemos por compatibilidad en caso de que otros componentes las usen.
+  const loginPage = (
+    <Login
+      notice={loginNotice}
+      onLogin={handleLogin}
+      onLoginDone={handleAuthenticated}
+      onShowRegister={() => navigate('/signup')}
+    />
+  )
+  const dashboard =
+    catalog?.accountKey === accountKey && accountKey ? (
+      <Dashboard
+        key={accountKey}
+        onLogout={handleLogout}
+        onRegister={handleCreateUser}
+        initialCatalog={{ ...catalog, retentionDays }}
+      />
+    ) : (
+      <LoadingView />
+    )
 
   return (
-    <div className="admin">
-      <Routes>
-        <Route path="/signin" element={
-          <PublicRoute element={<Login notice={loginNotice} onShowRegister={() => navigate('/signup')} />} />
-        } />
-        <Route path="/signup" element={
-          <PublicRoute element={<Register onBackToLogin={() => navigate('/signin')} />} />
-        } />
-        <Route path="/*" element={
-          <ProtectedRoute element={session ? <Dashboard onLogout={handleLogout} currentUser={session.user} /> : null} />
-        } />
-      </Routes>
-    </div>
+    <CurrentUserContext.Provider value={user}>
+      <div className="admin">
+        <Routes>
+          <Route path="/signin" element={<PublicRoute element={loginPage} />} />
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute
+                element={
+                  <Register
+                    onRegister={handleRegister}
+                    onRegistered={handleAuthenticated}
+                    onBackToLogin={() => navigate('/')}
+                  />
+                }
+              />
+            }
+          />
+          <Route path="/" element={isAuthenticated ? dashboard : loginPage} />
+          <Route path="/*" element={<ProtectedRoute element={dashboard} />} />
+        </Routes>
+      </div>
+    </CurrentUserContext.Provider>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }

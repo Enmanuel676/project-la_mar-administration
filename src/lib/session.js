@@ -1,8 +1,9 @@
 // localStorage (no sessionStorage): la sesión se comparte entre todas las pestañas
 // del navegador. Si un usuario inicia sesión en una pestaña, las demás también
 // tienen acceso sin tener que volver a iniciar sesión.
-const TOKEN_KEY = 'lamar_token'
-const USER_KEY = 'lamar_user'
+import { SESSION_KEYS } from './config'
+const TOKEN_KEY = SESSION_KEYS.token
+const USER_KEY = SESSION_KEYS.user
 
 export function getToken() {
   try {

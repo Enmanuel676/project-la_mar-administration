@@ -1,194 +1,94 @@
-/**
- * AuthProvider - Proveedor de contexto de autenticación
- * 
- * Este componente proporciona un contexto centralizado para gestionar el estado de autenticación.
- * Actualmente no está integrado en la aplicación, pero está disponible para uso futuro.
- * 
- * La aplicación actualmente usa session.js directamente en los componentes.
- * Para integrar este proveedor, envolver la aplicación con <AuthProvider> en App.jsx
- * y reemplazar las llamadas a session.js con useAuth() en los componentes.
- */
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  getToken,
+  getUser,
+  setSession,
+  clearSession,
+  updateSessionUser,
+} from '../../lib/session'
+import { api } from '../../lib/api'
+import { AuthContext } from './AuthContext'
+import { SESSION_KEYS } from '../../lib/config'
 
-import { useEffect, useState, useCallback } from 'react';
-import { getToken, getUser, setSession, clearSession, updateSessionUser } from '../../lib/session';
-import { api } from '../../lib/api';
-import { AuthContext } from './AuthContext';
-
-/**
- * Proveedor de contexto de autenticación.
- * 
- * Inicializa el estado de autenticación desde localStorage y sincroniza con el backend.
- * 
- * @param {Object} props - Props del componente
- * @param {React.ReactNode} props.children - Componentes hijos
- */
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Cargar sesión inicial desde localStorage
-  useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const storedToken = getToken();
-        const storedUser = getUser();
-
-        // Si hay token pero el usuario no tiene email (sesión antigua), limpiar sesión
-        if (storedToken && (!storedUser || !storedUser.email)) {
-          clearSession();
-          setLoading(false);
-          return;
-        }
-
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(storedUser);
-        }
-      } catch (err) {
-        console.error('Error al cargar la sesión:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    // Sincronización entre pestañas: cuando otra pestaña cambia la sesión,
-    // este AuthProvider reacciona al evento `storage` de localStorage.
-    const onStorageChange = (e) => {
-      // Solo nos interesan los cambios de nuestras claves.
-      if (e.key !== 'lamar_token' && e.key !== 'lamar_user' && e.key !== null) return
-      const storedToken = getToken()
-      const storedUser = getUser()
-      
-      if (storedToken && storedUser && storedUser.email) {
-        // Hay sesión válida en localStorage: actualizar estado del contexto
-        setToken(storedToken)
-        setUser(storedUser)
-      } else {
-        // Se borró la sesión (logout en otra pestaña): limpiar contexto
-        setToken(null)
-        setUser(null)
-      }
-    }
-    window.addEventListener('storage', onStorageChange)
-    return () => window.removeEventListener('storage', onStorageChange)
-  }, []);
-
-  // Sincronizar usuario con el backend
-  const syncUser = useCallback(async () => {
-    if (!token) return null;
-
-    try {
-      const currentUser = await api.getMe();
-      if (currentUser) {
-        setUser(currentUser);
-        updateSessionUser(currentUser);
-        return currentUser;
-      }
-      return null;
-    } catch (err) {
-      // Si el token no es válido, limpiar la sesión
-      if (err.message.includes('sesión') || err.message.includes('token')) {
-        clearSession();
-        setUser(null);
-        setToken(null);
-      }
-      throw err;
-    }
-  }, [token]);
-
-  // Verificar si el usuario está autenticado
-  const checkAuth = useCallback(() => {
-    return !!(token && user);
-  }, [token, user]);
-
-  // Verificar si el usuario es administrador
-  const isAdminUser = useCallback(() => {
-    return user && (user.isAdmin || user.role === 'admin');
-  }, [user]);
-
-  // Iniciar sesión
-  const login = useCallback(async (email, password) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await api.login(email, password);
-      setToken(result.token);
-      setUser(result.user);
-      setSession(result.token, result.user);
-      setLoading(false);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-      throw err;
-    }
-  }, []);
-
-  // Registrar usuario
-  const register = useCallback(async (firstName, lastName, email, password) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await api.register(firstName, lastName, email, password);
-      setToken(result.token);
-      setUser(result.user);
-      setSession(result.token, result.user);
-      setLoading(false);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-      throw err;
-    }
-  }, []);
-
-  // Cerrar sesión
-  const logout = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      await api.logout();
-    } catch (err) {
-      // Ignorar errores al cerrar sesión
-      console.error('Error al cerrar sesión en el servidor:', err);
-    } finally {
-      clearSession();
-      setUser(null);
-      setToken(null);
-      setLoading(false);
-    }
-  }, []);
-
-  // Proveedor los valores del contexto
-  const value = {
-    user,
-    token,
-    isAdmin: isAdminUser(),
-    isAuthenticated: checkAuth(),
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    syncUser,
-    checkAuth,
-    setUser,
-    setToken,
-    clearError: () => setError(null),
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+function readSession() {
+  const token = getToken()
+  const user = getUser()
+  return token && user?.email ? { token, user } : null
 }
 
-export default AuthProvider;
+// App coordina las solicitudes; este proveedor mantiene la identidad y su persistencia.
+export function AuthProvider({ children }) {
+  const [session, setCurrentSession] = useState(readSession)
+  const sessionRef = useRef(session)
+
+  const updateSession = useCallback((next) => {
+    sessionRef.current = next
+    setCurrentSession(next)
+  }, [])
+
+  const clearAuth = useCallback(() => {
+    clearSession()
+    updateSession(null)
+  }, [updateSession])
+
+  const completeLogin = useCallback(
+    (result) => {
+      setSession(result.token, result.user)
+      updateSession({ token: result.token, user: result.user })
+    },
+    [updateSession],
+  )
+
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (
+        event.key === null ||
+        Object.values(SESSION_KEYS).includes(event.key)
+      ) {
+        updateSession(readSession())
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [updateSession])
+
+  const syncUser = useCallback(async () => {
+    const activeToken = sessionRef.current?.token
+    if (!activeToken) return null
+    const user = await api.getMe()
+    // Una respuesta anterior no puede restaurar una sesión cerrada o sustituida.
+    if (sessionRef.current?.token === activeToken) {
+      updateSessionUser(user)
+      updateSession({ token: activeToken, user })
+    }
+    return user
+  }, [updateSession])
+
+  const logout = useCallback(async () => {
+    const request = api.logout()
+    clearAuth()
+    // El estado local debe cerrarse incluso si el servidor está desconectado.
+    await request.catch(() => {})
+  }, [clearAuth])
+
+  const user = session?.user ?? null
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token: session?.token ?? null,
+        isAuthenticated: !!session,
+        isAdmin: !!(user?.isAdmin || user?.role === 'admin'),
+        loading: false,
+        completeLogin,
+        clearAuth,
+        logout,
+        syncUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export default AuthProvider

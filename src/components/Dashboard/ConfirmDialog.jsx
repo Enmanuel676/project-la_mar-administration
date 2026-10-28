@@ -1,8 +1,12 @@
 import { useEffect } from 'react'
-import { TRASH_DAYS } from '../../lib/api'
 import DoneButton from '../DoneButton/DoneButton'
 
-export default function ConfirmDialog({ confirm, onCancel, onConfirm }) {
+export default function ConfirmDialog({
+  confirm,
+  onCancel,
+  onConfirm,
+  retentionDays,
+}) {
   // Mientras se borra (y mientras el botón pasa a «Hecho») el diálogo no se puede cerrar.
   const locked = !confirm || !!confirm.busy
 
@@ -54,9 +58,10 @@ export default function ConfirmDialog({ confirm, onCancel, onConfirm }) {
               '» se borrará para siempre. Esta acción no se puede deshacer.'
             : '«' +
               article.name +
-              '» se quitará del catálogo y pasará a Eliminados, donde podrás restaurarlo durante ' +
-              TRASH_DAYS +
-              ' días.'}
+              '» se quitará del catálogo y pasará a Eliminados, donde podrás restaurarlo' +
+              (retentionDays
+                ? ' durante ' + retentionDays + ' días.'
+                : ' antes de su borrado automático.')}
         </p>
         <div className="confirm__actions">
           <button

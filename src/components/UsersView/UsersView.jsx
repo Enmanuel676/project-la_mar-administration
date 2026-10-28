@@ -7,7 +7,11 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingUser, setEditingUser] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: 'user' })
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    role: 'user',
+  })
   const [saving, setSaving] = useState(false)
   const [editDone, setEditDone] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -22,21 +26,22 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
   const isCurrentUserAdmin = isAdmin
 
   useEffect(() => {
-    loadUsers()
-  }, [])
-
-  async function loadUsers() {
-    setLoading(true)
-    setError('')
-    try {
-      const list = await api.listUsers()
-      setUsers(list)
-    } catch (ex) {
-      setError(ex.message)
-    } finally {
-      setLoading(false)
+    let ignore = false
+    api
+      .listUsers()
+      .then((list) => {
+        if (!ignore) setUsers(list)
+      })
+      .catch((ex) => {
+        if (!ignore) setError(ex.message)
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
     }
-  }
+  }, [])
 
   function openEdit(user) {
     setEditingUser(user)
@@ -48,6 +53,7 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
   }
 
   function closeEdit() {
+    if (saving && !editDone) return
     setEditingUser(null)
     setEditForm({ name: '', email: '', role: 'user' })
     // Resetear también el progreso: si se cerró el modal a mitad del guardado, la próxima
@@ -60,6 +66,7 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
   // Cierra el diálogo de eliminación sea como sea (fondo, Cancelar o tras «Hecho») y
   // libera el botón para la próxima eliminación.
   function closeDelete() {
+    if (deleting && !deleteDone) return
     setConfirmDelete(null)
     setDeleting(false)
     setDeleteDone(false)
@@ -68,6 +75,7 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
 
   // Cierra el diálogo de contraseña y libera su botón (comparte `saving` con la edición).
   function closePassword() {
+    if (saving && !passwordDone) return
     setChangingPassword(null)
     setNewPassword('')
     setSaving(false)
@@ -77,16 +85,19 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
 
   async function handleSave(e) {
     e.preventDefault()
-    if (!editingUser) return
+    if (!editingUser || saving || editDone) return
     setSaving(true)
     setError('')
     try {
-      const updated = await api.updateUser(editingUser.id || editingUser._id, editForm)
-      setUsers((list) =>
-        list.map((u) => (u.id === updated.id || u._id === updated._id ? updated : u)),
+      const updated = await api.updateUser(
+        editingUser.id || editingUser._id,
+        editForm,
       )
-      // Recargar la lista para que todos los datos queden sincronizados
-      await loadUsers()
+      setUsers((list) =>
+        list.map((u) =>
+          (u.id || u._id) === (updated.id || updated._id) ? updated : u,
+        ),
+      )
       setEditDone(true)
     } catch (ex) {
       setError(ex.message)
@@ -103,13 +114,15 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
   }
 
   async function handleDelete() {
-    if (!confirmDelete) return
+    if (!confirmDelete || deleting) return
     setDeleting(true)
     setError('')
     try {
       await api.deleteUser(confirmDelete.id || confirmDelete._id)
       setUsers((list) =>
-        list.filter((u) => (u.id || u._id) !== (confirmDelete.id || confirmDelete._id)),
+        list.filter(
+          (u) => (u.id || u._id) !== (confirmDelete.id || confirmDelete._id),
+        ),
       )
       setDeleteDone(true)
     } catch (ex) {
@@ -125,11 +138,14 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
 
   async function handleChangePassword(e) {
     e.preventDefault()
-    if (!changingPassword || !newPassword) return
+    if (!changingPassword || !newPassword || saving || passwordDone) return
     setSaving(true)
     setError('')
     try {
-      await api.changeUserPassword(changingPassword.id || changingPassword._id, newPassword)
+      await api.changeUserPassword(
+        changingPassword.id || changingPassword._id,
+        newPassword,
+      )
       setPasswordDone(true)
     } catch (ex) {
       setError(ex.message)
@@ -165,8 +181,12 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
         </div>
       </header>
 
-      {error && (
-        <p className="admin__error" role="alert" style={{ margin: '1rem var(--margin-mobile) 0' }}>
+      {error && !editingUser && !confirmDelete && !changingPassword && (
+        <p
+          className="admin__error"
+          role="alert"
+          style={{ margin: '1rem var(--margin-mobile) 0' }}
+        >
           {error}
         </p>
       )}
@@ -196,7 +216,9 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                   </div>
                   <div className="card__info">
                     <span className="card__meta">
-                      {user.isAdmin || user.role === 'admin' ? 'Administrador' : 'Usuario'}
+                      {user.isAdmin || user.role === 'admin'
+                        ? 'Administrador'
+                        : 'Usuario'}
                       {isCurrent && ' · Tú'}
                     </span>
                     <span className="card__name">{user.name}</span>
@@ -204,7 +226,7 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                   </div>
                 </div>
                 <div className="card__side">
-                  {(!isCurrent && isCurrentUserAdmin) && (
+                  {!isCurrent && isCurrentUserAdmin && (
                     <div className="user-card__actions">
                       <button
                         className="icon-btn icon-btn--sm"
@@ -212,7 +234,10 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                         title="Editar usuario"
                         type="button"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 18 }}
+                        >
                           edit
                         </span>
                       </button>
@@ -222,7 +247,10 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                         title="Cambiar contraseña"
                         type="button"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 18 }}
+                        >
                           lock_reset
                         </span>
                       </button>
@@ -232,7 +260,10 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                         title="Eliminar usuario"
                         type="button"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: 18 }}
+                        >
                           delete
                         </span>
                       </button>
@@ -253,13 +284,20 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
         <div className="confirm" onClick={closeEdit}>
           <div className="confirm__sheet" onClick={(e) => e.stopPropagation()}>
             <div className="confirm__grip" />
+            {error && (
+              <p className="admin__error" role="alert">
+                {error}
+              </p>
+            )}
             <h2 className="admin__title">Editar usuario</h2>
             <form className="form" onSubmit={handleSave}>
               <label>
                 <span className="admin__label">Nombre</span>
                 <input
                   className="field"
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
                   required
                   type="text"
                   value={editForm.name}
@@ -269,7 +307,9 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                 <span className="admin__label">Correo electrónico</span>
                 <input
                   className="field"
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
                   required
                   type="email"
                   value={editForm.email}
@@ -279,7 +319,9 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                 <span className="admin__label">Rol</span>
                 <select
                   className="field"
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, role: e.target.value })
+                  }
                   value={editForm.role}
                   disabled={!isCurrentUserAdmin}
                 >
@@ -288,16 +330,12 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                 </select>
               </label>
               <div className="confirm__actions">
-                <button
-                  className="btn-ghost"
-                  onClick={closeEdit}
-                  type="button"
-                >
+                <button className="btn-ghost" onClick={closeEdit} type="button">
                   Cancelar
                 </button>
                 <DoneButton
                   className={'btn-primary' + (saving ? ' is-busy' : '')}
-                  disabled={saving}
+                  disabled={saving || editDone}
                   done={editDone}
                   onDone={handleEditDone}
                   type="submit"
@@ -327,17 +365,19 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
         <div className="confirm" onClick={closeDelete}>
           <div className="confirm__sheet" onClick={(e) => e.stopPropagation()}>
             <div className="confirm__grip" />
+            {error && (
+              <p className="admin__error" role="alert">
+                {error}
+              </p>
+            )}
             <h2 className="admin__title">Eliminar usuario</h2>
             <p className="confirm__text">
-              ¿Seguro que quieres eliminar a <strong>{confirmDelete.name}</strong> ({confirmDelete.email})?
+              ¿Seguro que quieres eliminar a{' '}
+              <strong>{confirmDelete.name}</strong> ({confirmDelete.email})?
               Esta acción no se puede deshacer.
             </p>
             <div className="confirm__actions">
-              <button
-                className="btn-ghost"
-                onClick={closeDelete}
-                type="button"
-              >
+              <button className="btn-ghost" onClick={closeDelete} type="button">
                 Cancelar
               </button>
               <DoneButton
@@ -372,6 +412,11 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
         <div className="confirm" onClick={closePassword}>
           <div className="confirm__sheet" onClick={(e) => e.stopPropagation()}>
             <div className="confirm__grip" />
+            {error && (
+              <p className="admin__error" role="alert">
+                {error}
+              </p>
+            )}
             <h2 className="admin__title">Cambiar contraseña</h2>
             <p className="confirm__text">
               Cambiar la contraseña de <strong>{changingPassword.name}</strong>
@@ -383,6 +428,7 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                   <input
                     className="field"
                     minLength={8}
+                    maxLength={128}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
                     required
@@ -395,7 +441,10 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                     onClick={() => setShowPassword((v) => !v)}
                     type="button"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 20 }}
+                    >
                       {showPassword ? 'visibility_off' : 'visibility'}
                     </span>
                   </button>
@@ -411,7 +460,7 @@ export default function UsersView({ onBack, currentUser, isAdmin }) {
                 </button>
                 <DoneButton
                   className={'btn-primary' + (saving ? ' is-busy' : '')}
-                  disabled={saving || newPassword.length < 8}
+                  disabled={saving || passwordDone || newPassword.length < 8}
                   done={passwordDone}
                   onDone={handlePasswordDone}
                   type="submit"

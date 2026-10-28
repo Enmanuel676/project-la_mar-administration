@@ -22,12 +22,11 @@
  *             description, image, published, updatedAt, deletedAt? }
  * ================================================================== */
 import { getToken, getUser, clearSession } from './session'
+import { API_BASE_URL, TRASH_DAYS } from './config'
 
 const USE_MOCK = false
 // En el servidor se compila con VITE_API_URL (p. ej. https://api.lamarjoyeria.mooo.com/api).
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
-
-export const TRASH_DAYS = 30
+export { TRASH_DAYS }
 export const DAY_MS = 24 * 60 * 60 * 1000
 export const CURRENCIES = { USD: 'Dólar estadounidense', CUP: 'Peso cubano' }
 
@@ -122,7 +121,12 @@ async function http(method, path, body, onProgress) {
   }
   // Un 401 con token guardado es una sesión caducada. Sin token (el login) es una
   // contraseña incorrecta, y ahí se muestra el mensaje del backend.
-  if (res.status === 401 && token) {
+  if (
+    res.status === 401 &&
+    token &&
+    token === getToken() &&
+    !['/signin', '/signup', '/auth/logout'].includes(path)
+  ) {
     clearSession()
     if (onSessionExpired) onSessionExpired()
     throw new Error(SESSION_EXPIRED_MESSAGE)
@@ -257,6 +261,9 @@ const mock = (function () {
     })
   }
   return {
+    getConfig: function () {
+      return delay({ trashRetentionDays: TRASH_DAYS })
+    },
     login: function (email, password) {
       if (
         email.trim().toLowerCase() === 'admin@lamar.com' &&
@@ -428,11 +435,14 @@ const mock = (function () {
 export const api = USE_MOCK
   ? mock
   : {
+      getConfig: function () {
+        return http('GET', '/config')
+      },
       login: function (email, password) {
-        return http('POST', '/auth/signin', { email: email, password: password })
+        return http('POST', '/signin', { email: email, password: password })
       },
       register: function (firstName, lastName, email, password) {
-        return http('POST', '/auth/signup', {
+        return http('POST', '/signup', {
           firstName: firstName,
           lastName: lastName,
           email: email,
@@ -448,6 +458,9 @@ export const api = USE_MOCK
         return http('POST', '/auth/logout')
       },
       // Gestión de usuarios (solo admin)
+      createUser: function (firstName, lastName, email, password) {
+        return http('POST', '/users', { firstName, lastName, email, password })
+      },
       listUsers: function () {
         return http('GET', '/users')
       },

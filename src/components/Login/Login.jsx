@@ -1,14 +1,16 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { api } from '../../lib/api'
-import { useAuth } from '../AuthProvider/hooks'
+import { useState } from 'react'
 import { hasErrors, LIMITS, validateLogin } from '../../lib/validation'
 import DoneButton from '../DoneButton/DoneButton'
 
 // `notice`: aviso que llega de fuera, por ejemplo que la sesión anterior caducó.
-export default function Login({ onLogin, notice, onShowRegister }) {
-  const { login: contextLogin, loading } = useAuth()
-  const navigate = useNavigate()
+export default function Login({
+  notice,
+  onShowRegister,
+  onLogin,
+  onLoginDone,
+}) {
+  const [loading, setLoading] = useState(false)
+  const [loginResult, setLoginResult] = useState(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -28,18 +30,19 @@ export default function Login({ onLogin, notice, onShowRegister }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (loading) return
     if (invalid) {
       setTouched({ email: true, password: true })
       return
     }
     setError('')
+    setLoading(true)
     try {
-      await contextLogin(email, password)
-      // Navegar automáticamente después de login exitoso
-      // El contexto ya está actualizado por contextLogin
-      navigate('/')
+      const result = await onLogin(email, password)
+      setLoginResult(result)
     } catch (ex) {
       setError(ex.message)
+      setLoading(false)
     }
   }
 
@@ -141,6 +144,8 @@ export default function Login({ onLogin, notice, onShowRegister }) {
           <DoneButton
             className={'btn-primary btn-block' + (loading ? ' is-busy' : '')}
             disabled={loading || invalid}
+            done={!!loginResult}
+            onDone={() => onLoginDone(loginResult)}
             type="submit"
           >
             {loading ? (

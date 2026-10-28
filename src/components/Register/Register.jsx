@@ -1,12 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { api } from '../../lib/api'
-import { useAuth } from '../AuthProvider/hooks'
 import DoneButton from '../DoneButton/DoneButton'
 
-export default function Register({ onRegister, onBackToLogin }) {
-  const { register: contextRegister, loading } = useAuth()
-  const navigate = useNavigate()
+export default function Register({ onRegister, onRegistered, onBackToLogin }) {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -24,17 +21,21 @@ export default function Register({ onRegister, onBackToLogin }) {
   function validate() {
     const errors = {}
     if (!firstName.trim()) errors.firstName = 'El nombre es obligatorio.'
-    else if (firstName.trim().length > 50) errors.firstName = 'El nombre no puede superar los 50 caracteres.'
+    else if (firstName.trim().length > 50)
+      errors.firstName = 'El nombre no puede superar los 50 caracteres.'
     if (!lastName.trim()) errors.lastName = 'El apellido es obligatorio.'
-    else if (lastName.trim().length > 50) errors.lastName = 'El apellido no puede superar los 50 caracteres.'
+    else if (lastName.trim().length > 50)
+      errors.lastName = 'El apellido no puede superar los 50 caracteres.'
     if (!email.trim()) {
       errors.email = 'El correo electrónico es obligatorio.'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = 'El correo electrónico no es válido.'
     }
     if (!password) errors.password = 'La contraseña es obligatoria.'
-    else if (password.length < 8) errors.password = 'La contraseña debe tener al menos 8 caracteres.'
-    else if (password.length > 128) errors.password = 'La contraseña no puede superar los 128 caracteres.'
+    else if (password.length < 8)
+      errors.password = 'La contraseña debe tener al menos 8 caracteres.'
+    else if (password.length > 128)
+      errors.password = 'La contraseña no puede superar los 128 caracteres.'
     if (!confirmPassword) {
       errors.confirmPassword = 'Confirma tu contraseña.'
     } else if (password !== confirmPassword) {
@@ -53,6 +54,7 @@ export default function Register({ onRegister, onBackToLogin }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (loading) return
     if (invalid) {
       setTouched({
         firstName: true,
@@ -64,13 +66,12 @@ export default function Register({ onRegister, onBackToLogin }) {
       return
     }
     setError('')
+    setLoading(true)
     try {
-      await contextRegister(firstName, lastName, email, password)
-      // Navegar automáticamente después de registro exitoso
-      // El contexto ya está actualizado por contextRegister
-      navigate('/')
+      setResult(await onRegister(firstName, lastName, email, password))
     } catch (ex) {
       setError(ex.message || 'Error al registrarse')
+      setLoading(false)
     }
   }
 
@@ -95,16 +96,14 @@ export default function Register({ onRegister, onBackToLogin }) {
             {error}
           </p>
         )}
-        <form
-          className="register__form"
-          noValidate
-          onSubmit={handleSubmit}
-        >
+        <form className="register__form" noValidate onSubmit={handleSubmit}>
           <div className="form__row">
             <label>
               <span className="admin__label">Nombre</span>
               <input
-                aria-describedby={firstNameError ? 'register-firstName-error' : undefined}
+                aria-describedby={
+                  firstNameError ? 'register-firstName-error' : undefined
+                }
                 aria-invalid={firstNameError ? true : undefined}
                 autoComplete="given-name"
                 className={'field' + (firstNameError ? ' field--invalid' : '')}
@@ -116,7 +115,10 @@ export default function Register({ onRegister, onBackToLogin }) {
                 value={firstName}
               />
               {firstNameError && (
-                <span className="admin__field-error" id="register-firstName-error">
+                <span
+                  className="admin__field-error"
+                  id="register-firstName-error"
+                >
                   {firstNameError}
                 </span>
               )}
@@ -124,7 +126,9 @@ export default function Register({ onRegister, onBackToLogin }) {
             <label>
               <span className="admin__label">Apellido</span>
               <input
-                aria-describedby={lastNameError ? 'register-lastName-error' : undefined}
+                aria-describedby={
+                  lastNameError ? 'register-lastName-error' : undefined
+                }
                 aria-invalid={lastNameError ? true : undefined}
                 autoComplete="family-name"
                 className={'field' + (lastNameError ? ' field--invalid' : '')}
@@ -136,7 +140,10 @@ export default function Register({ onRegister, onBackToLogin }) {
                 value={lastName}
               />
               {lastNameError && (
-                <span className="admin__field-error" id="register-lastName-error">
+                <span
+                  className="admin__field-error"
+                  id="register-lastName-error"
+                >
                   {lastNameError}
                 </span>
               )}
@@ -167,7 +174,9 @@ export default function Register({ onRegister, onBackToLogin }) {
             <span className="admin__label">Contraseña</span>
             <div className="register__password">
               <input
-                aria-describedby={passwordError ? 'register-password-error' : undefined}
+                aria-describedby={
+                  passwordError ? 'register-password-error' : undefined
+                }
                 aria-invalid={passwordError ? true : undefined}
                 autoComplete="new-password"
                 className={'field' + (passwordError ? ' field--invalid' : '')}
@@ -203,11 +212,15 @@ export default function Register({ onRegister, onBackToLogin }) {
             <div className="register__password">
               <input
                 aria-describedby={
-                  confirmPasswordError ? 'register-confirmPassword-error' : undefined
+                  confirmPasswordError
+                    ? 'register-confirmPassword-error'
+                    : undefined
                 }
                 aria-invalid={confirmPasswordError ? true : undefined}
                 autoComplete="new-password"
-                className={'field' + (confirmPasswordError ? ' field--invalid' : '')}
+                className={
+                  'field' + (confirmPasswordError ? ' field--invalid' : '')
+                }
                 onBlur={() => touch('confirmPassword')}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
@@ -239,17 +252,15 @@ export default function Register({ onRegister, onBackToLogin }) {
             )}
           </label>
           <div className="register__actions">
-            <button
-              className="btn-ghost"
-              onClick={onBackToLogin}
-              type="button"
-            >
+            <button className="btn-ghost" onClick={onBackToLogin} type="button">
               ¿Ya tienes cuenta? Inicia sesión
             </button>
           </div>
           <DoneButton
             className={'btn-primary btn-block' + (loading ? ' is-busy' : '')}
             disabled={loading || invalid}
+            done={!!result}
+            onDone={() => onRegistered(result)}
             type="submit"
           >
             {loading ? (
