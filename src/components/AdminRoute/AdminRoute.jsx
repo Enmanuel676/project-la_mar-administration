@@ -3,7 +3,7 @@ import { useAuth } from '../AuthProvider/hooks';
 
 /**
  * Componente que protege rutas que requieren rol de administrador.
- * Si no hay sesión, redirige a /login.
+ * Si no hay sesión, redirige a /signin.
  * Si hay sesión pero no es admin, redirige a / (dashboard).
  * 
  * Este componente es ahora un alias de ProtectedRoute con roles=['admin']
@@ -23,7 +23,7 @@ export default function AdminRoute({ element }) {
 
   // Si no está autenticado, redirigir a login
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
   // Verificar que el usuario sea administrador

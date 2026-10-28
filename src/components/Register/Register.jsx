@@ -64,7 +64,7 @@ export default function Register({ onRegister, onBackToLogin }) {
     setError('')
     setBusy(true)
     try {
-      // Llamada real al backend: POST /auth/register
+      // Llamada real al backend: POST /auth/signup
       const result = await api.register(firstName, lastName, email, password)
       setRegistered(result)
     } catch (ex) {

@@ -3,7 +3,7 @@ import { useAuth } from '../AuthProvider/hooks';
 
 /**
  * Componente que protege rutas que requieren autenticación.
- * Si no hay sesión, redirige a /login.
+ * Si no hay sesión, redirige a /signin.
  * 
  * Props:
  * - element: Elemento React a renderizar si está autenticado
@@ -24,7 +24,7 @@ export default function ProtectedRoute({ element, roles }) {
 
   // Si no está autenticado, redirigir a login
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
   // Si hay roles especificados, verificar que el usuario tenga alguno de ellos

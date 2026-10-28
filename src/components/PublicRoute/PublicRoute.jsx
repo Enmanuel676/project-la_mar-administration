@@ -2,11 +2,11 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../AuthProvider/hooks';
 
 /**
- * Componente que protege rutas públicas (como login, register).
+ * Componente que protege rutas públicas (como signin, signup).
  * Si el usuario YA está autenticado, lo redirige al dashboard (/).
  * Si no está autenticado, muestra el componente hijo (element).
  * 
- * Uso: <Route path="/login" element={<PublicRoute element={<Login />} />} />
+ * Uso: <Route path="/signin" element={<PublicRoute element={<Login />} />} />
  */
 export default function PublicRoute({ element }) {
   const { isAuthenticated, loading } = useAuth();

@@ -27,7 +27,7 @@ export default function App() {
   useEffect(() => {
     setSessionExpiredHandler(() => {
       setSessionState(null)
-      navigate('/login')
+      navigate('/signin')
       setLoginNotice(SESSION_EXPIRED_MESSAGE)
     })
     return () => setSessionExpiredHandler(null)
@@ -39,10 +39,10 @@ export default function App() {
   // Así, cuando otra pestaña inicia sesión (evento `storage` actualiza `session`),
   // esta pestaña sale sola de la pantalla de login.
   useEffect(() => {
-    if (!session && location.pathname !== '/login' && location.pathname !== '/register') {
-      navigate('/login')
+    if (!session && location.pathname !== '/signin' && location.pathname !== '/signup') {
+      navigate('/signin')
     }
-    if (session && (location.pathname === '/login' || location.pathname === '/register')) {
+    if (session && (location.pathname === '/signin' || location.pathname === '/signup')) {
       navigate('/')
     }
   }, [location, session, navigate])
@@ -84,8 +84,8 @@ export default function App() {
       } else {
         // Se borró la sesión (logout en otra pestaña): volver al login.
         setSessionState(null)
-        if (location.pathname !== '/login' && location.pathname !== '/register') {
-          navigate('/login')
+        if (location.pathname !== '/signin' && location.pathname !== '/signup') {
+          navigate('/signin')
         }
       }
     }
@@ -107,7 +107,7 @@ export default function App() {
     clearSession()
     setSessionState(null)
     setLoginNotice('')
-    navigate('/login')
+    navigate('/signin')
   }
 
   function handleRegisterSuccess(session) {
@@ -121,9 +121,9 @@ export default function App() {
   return (
     <div className="admin">
       <Routes>
-        <Route path="/login" element={<Login notice={loginNotice} onLogin={handleLogin} onShowRegister={() => navigate('/register')} />} />
-        <Route path="/register" element={<Register onRegister={handleRegisterSuccess} onBackToLogin={() => navigate('/login')} />} />
-        <Route path="/*" element={session ? <Dashboard onLogout={handleLogout} currentUser={session.user} /> : <Login notice={loginNotice} onLogin={handleLogin} onShowRegister={() => navigate('/register')} />} />
+        <Route path="/signin" element={<Login notice={loginNotice} onLogin={handleLogin} onShowRegister={() => navigate('/signup')} />} />
+        <Route path="/signup" element={<Register onRegister={handleRegisterSuccess} onBackToLogin={() => navigate('/signin')} />} />
+        <Route path="/*" element={session ? <Dashboard onLogout={handleLogout} currentUser={session.user} /> : <Login notice={loginNotice} onLogin={handleLogin} onShowRegister={() => navigate('/signup')} />} />
       </Routes>
     </div>
   )

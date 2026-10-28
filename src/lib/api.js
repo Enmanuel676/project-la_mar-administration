@@ -6,7 +6,7 @@
  * backend, pon USE_MOCK = false y ajusta API_BASE_URL: las funciones
  * ya hacen las llamadas REST esperadas.
  *
- *   POST   /auth/login          { email, password } → { token, user }
+ *   POST   /auth/signin         { email, password } → { token, user }
  *   GET    /articles                                → Article[]
  *   POST   /articles            Article             → Article
  *   PUT    /articles/:id        Article             → Article
@@ -429,10 +429,10 @@ export const api = USE_MOCK
   ? mock
   : {
       login: function (email, password) {
-        return http('POST', '/auth/login', { email: email, password: password })
+        return http('POST', '/auth/signin', { email: email, password: password })
       },
       register: function (firstName, lastName, email, password) {
-        return http('POST', '/auth/register', {
+        return http('POST', '/auth/signup', {
           firstName: firstName,
           lastName: lastName,
           email: email,
