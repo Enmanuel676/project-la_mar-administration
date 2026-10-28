@@ -17,9 +17,17 @@ export default function ProtectedRoute({ element, roles }) {
   const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
-  // Mostrar loading state mientras se verifica la autenticación
+  // Mostrar animación skeleton mientras se verifica la autenticación
   if (loading) {
-    return <div>Cargando...</div>;
+    return (
+      <div className="admin__view admin__view--catalog">
+        <div className="article-list">
+          <div className="skeleton" />
+          <div className="skeleton" />
+          <div className="skeleton" />
+        </div>
+      </div>
+    );
   }
 
   // Si no está autenticado, redirigir a login
@@ -28,7 +36,7 @@ export default function ProtectedRoute({ element, roles }) {
   }
 
   // Si hay roles especificados, verificar que el usuario tenga alguno de ellos
-  if (roles && roles.length > 0) {
+  if (roles && roles.length > 0 && user) {
     const hasRequiredRole = roles.some((role) => user.role === role || (user.isAdmin && role === 'admin'));
     if (!hasRequiredRole) {
       return <Navigate to="/" replace />;

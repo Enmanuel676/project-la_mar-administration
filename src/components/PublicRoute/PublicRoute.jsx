@@ -11,9 +11,17 @@ import { useAuth } from '../AuthProvider/hooks';
 export default function PublicRoute({ element }) {
   const { isAuthenticated, loading } = useAuth();
 
-  // Mostrar loading state mientras se verifica la autenticación
+  // Mostrar animación skeleton mientras se verifica la autenticación
   if (loading) {
-    return <div>Cargando...</div>;
+    return (
+      <div className="admin__view admin__view--catalog">
+        <div className="article-list">
+          <div className="skeleton" />
+          <div className="skeleton" />
+          <div className="skeleton" />
+        </div>
+      </div>
+    );
   }
 
   // Si hay sesión válida, redirigir al dashboard

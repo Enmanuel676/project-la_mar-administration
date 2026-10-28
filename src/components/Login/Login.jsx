@@ -1,17 +1,18 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
+import { useAuth } from '../AuthProvider/hooks'
 import { hasErrors, LIMITS, validateLogin } from '../../lib/validation'
 import DoneButton from '../DoneButton/DoneButton'
 
 // `notice`: aviso que llega de fuera, por ejemplo que la sesión anterior caducó.
 export default function Login({ onLogin, notice, onShowRegister }) {
+  const { login: contextLogin, loading } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  // Sesión ya recibida ({ token, user }): el botón pasa a «Hecho» y, al terminar, se entra.
-  const [logged, setLogged] = useState(null)
   // Un campo muestra su error cuando ya se ha salido de él una vez: así no aparece
   // «correo no válido» con la primera letra. El botón, en cambio, se bloquea desde el principio.
   const [touched, setTouched] = useState({})
@@ -32,12 +33,13 @@ export default function Login({ onLogin, notice, onShowRegister }) {
       return
     }
     setError('')
-    setBusy(true)
     try {
-      setLogged(await api.login(email, password))
+      await contextLogin(email, password)
+      // Navegar automáticamente después de login exitoso
+      // El contexto ya está actualizado por contextLogin
+      navigate('/')
     } catch (ex) {
       setError(ex.message)
-      setBusy(false)
     }
   }
 
@@ -137,13 +139,11 @@ export default function Login({ onLogin, notice, onShowRegister }) {
             </button>
           </div>
           <DoneButton
-            className={'btn-primary btn-block' + (busy ? ' is-busy' : '')}
-            disabled={busy || invalid}
-            done={!!logged}
-            onDone={() => onLogin(logged.token, logged.user)}
+            className={'btn-primary btn-block' + (loading ? ' is-busy' : '')}
+            disabled={loading || invalid}
             type="submit"
           >
-            {busy ? (
+            {loading ? (
               <span>Cargando…</span>
             ) : (
               <>

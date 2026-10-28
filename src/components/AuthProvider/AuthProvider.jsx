@@ -54,6 +54,27 @@ export function AuthProvider({ children }) {
     };
 
     initializeAuth();
+
+    // Sincronización entre pestañas: cuando otra pestaña cambia la sesión,
+    // este AuthProvider reacciona al evento `storage` de localStorage.
+    const onStorageChange = (e) => {
+      // Solo nos interesan los cambios de nuestras claves.
+      if (e.key !== 'lamar_token' && e.key !== 'lamar_user' && e.key !== null) return
+      const storedToken = getToken()
+      const storedUser = getUser()
+      
+      if (storedToken && storedUser && storedUser.email) {
+        // Hay sesión válida en localStorage: actualizar estado del contexto
+        setToken(storedToken)
+        setUser(storedUser)
+      } else {
+        // Se borró la sesión (logout en otra pestaña): limpiar contexto
+        setToken(null)
+        setUser(null)
+      }
+    }
+    window.addEventListener('storage', onStorageChange)
+    return () => window.removeEventListener('storage', onStorageChange)
   }, []);
 
   // Sincronizar usuario con el backend

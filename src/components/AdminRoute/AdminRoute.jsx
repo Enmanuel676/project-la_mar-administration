@@ -16,9 +16,17 @@ export default function AdminRoute({ element }) {
   const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
-  // Mostrar loading state mientras se verifica la autenticación
+  // Mostrar animación skeleton mientras se verifica la autenticación
   if (loading) {
-    return <div>Cargando...</div>;
+    return (
+      <div className="admin__view admin__view--catalog">
+        <div className="article-list">
+          <div className="skeleton" />
+          <div className="skeleton" />
+          <div className="skeleton" />
+        </div>
+      </div>
+    );
   }
 
   // Si no está autenticado, redirigir a login
@@ -27,7 +35,7 @@ export default function AdminRoute({ element }) {
   }
 
   // Verificar que el usuario sea administrador
-  if (!user.isAdmin && user.role !== 'admin') {
+  if (!user || (!user.isAdmin && user.role !== 'admin')) {
     return <Navigate to="/" replace />;
   }
 

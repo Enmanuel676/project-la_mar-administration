@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
+import { useAuth } from '../AuthProvider/hooks'
 import DoneButton from '../DoneButton/DoneButton'
 
 export default function Register({ onRegister, onBackToLogin }) {
+  const { register: contextRegister, loading } = useAuth()
+  const navigate = useNavigate()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -11,8 +15,6 @@ export default function Register({ onRegister, onBackToLogin }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [registered, setRegistered] = useState(null)
   const [touched, setTouched] = useState({})
 
   function touch(field) {
@@ -62,14 +64,13 @@ export default function Register({ onRegister, onBackToLogin }) {
       return
     }
     setError('')
-    setBusy(true)
     try {
-      // Llamada real al backend: POST /auth/signup
-      const result = await api.register(firstName, lastName, email, password)
-      setRegistered(result)
+      await contextRegister(firstName, lastName, email, password)
+      // Navegar automáticamente después de registro exitoso
+      // El contexto ya está actualizado por contextRegister
+      navigate('/')
     } catch (ex) {
       setError(ex.message || 'Error al registrarse')
-      setBusy(false)
     }
   }
 
@@ -247,17 +248,11 @@ export default function Register({ onRegister, onBackToLogin }) {
             </button>
           </div>
           <DoneButton
-            className={'btn-primary btn-block' + (busy ? ' is-busy' : '')}
-            disabled={busy || invalid}
-            done={!!registered}
-            onDone={() => {
-              if (onRegister) {
-                onRegister(registered)
-              }
-            }}
+            className={'btn-primary btn-block' + (loading ? ' is-busy' : '')}
+            disabled={loading || invalid}
             type="submit"
           >
-            {busy ? (
+            {loading ? (
               <span>Registrando…</span>
             ) : (
               <>
