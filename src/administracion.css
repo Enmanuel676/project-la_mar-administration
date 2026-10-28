@@ -107,6 +107,14 @@ body.admin-body {
   color: var(--color-outline);
 }
 
+/* Error de un campo concreto, justo debajo de él */
+.admin__field-error {
+  display: block;
+  margin-top: var(--space-xs);
+  font: var(--type-body-sm);
+  color: var(--color-error);
+}
+
 /* ---------- Login ---------- */
 .login {
   display: flex;
@@ -155,6 +163,17 @@ body.admin-body {
 
 .login__password {
   position: relative;
+}
+
+/* Aviso que llega de fuera del formulario, como una sesión caducada */
+.login__notice {
+  margin-bottom: var(--space-md);
+  padding: 0.75rem 0.875rem;
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  font: var(--type-body-sm);
+  color: var(--color-on-surface);
 }
 
 .login__password .field {
@@ -220,6 +239,17 @@ body.admin-body {
   justify-content: space-between;
 }
 
+.topbar__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.topbar__greeting {
+  margin: 0.15rem 0 0.25rem;
+  font: var(--type-body-sm);
+  color: var(--color-on-surface-variant);
+}
+
 .search {
   position: relative;
   margin-top: 0.75rem;
@@ -271,6 +301,11 @@ body.admin-body {
 .field:focus {
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
+}
+
+.field--invalid,
+.field--invalid:focus {
+  border-color: var(--color-error);
 }
 
 select.field {
@@ -565,6 +600,11 @@ textarea.field {
 .price-group:focus-within {
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
+}
+
+.price-group--invalid,
+.price-group--invalid:focus-within {
+  border-color: var(--color-error);
 }
 
 .price-sign {
@@ -972,6 +1012,7 @@ textarea.field {
 }
 
 .confirm__sheet {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -988,6 +1029,23 @@ textarea.field {
   margin: 0 auto;
   border-radius: 9999px;
   background: var(--color-surface-variant);
+}
+
+/* Cruz arriba a la derecha. Un tono más claro que la hoja, que tiene el mismo fondo que .icon-btn */
+.confirm__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: var(--color-surface-container-high);
+}
+
+.confirm__close:hover {
+  background: var(--color-surface-container-highest);
+}
+
+.confirm__close:disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .confirm__text {
@@ -1076,4 +1134,140 @@ textarea.field {
   .skeleton {
     animation: none;
   }
+}
+
+/* ---------- Registro ---------- */
+.register {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--margin-mobile);
+}
+
+.register__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.register__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: var(--space-xl);
+}
+
+.register__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 5.5rem;
+  border-radius: 9999px;
+}
+
+.register__logo {
+}
+
+.register__name {
+  display: block;
+  font: var(--type-headline-md);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.register__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.register__password {
+  position: relative;
+}
+
+.register__password .field {
+  padding-right: 3rem;
+}
+
+.register__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  transform: translateY(-50%);
+  color: var(--color-outline);
+}
+
+.register__actions {
+  margin-top: var(--space-sm);
+}
+
+.register__actions .btn-ghost {
+  width: 100%;
+  justify-content: center;
+}
+
+.register__foot {
+  padding: var(--space-md) 0;
+  text-align: center;
+  font: var(--type-body-sm);
+  color: var(--color-outline);
+}
+
+/* Botón de registro en Login */
+.login__actions {
+  margin-top: var(--space-sm);
+}
+
+.login__actions .btn-ghost {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Formulario con dos columnas */
+.form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* ---------- Vista de Usuarios ---------- */
+.admin__view--users {
+  padding-bottom: 2rem;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: var(--space-md) var(--margin-mobile) 0;
+}
+
+.user-card {
+  align-items: center;
+}
+
+.user-card__avatar {
+  background: var(--color-surface-container-high);
+  color: var(--color-primary);
+}
+
+.user-card__avatar .material-symbols-outlined {
+  font-size: 28px;
+}
+
+.user-card__actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.user-card .card__side {
+  flex-direction: row;
+  align-items: center;
 }

@@ -1,5 +1,6 @@
 import ArticleCard from './ArticleCard'
 import TrashCard from './TrashCard'
+import { useCurrentUser } from '../CurrentUserContext/CurrentUserContext'
 
 const FILTERS = [
   { key: 'all', label: 'Todos' },
@@ -11,10 +12,12 @@ const FILTERS = [
 export default function CatalogView({
   articles,
   deleted,
+  retentionDays,
   pending,
   loading,
   filter,
   query,
+  isAdmin,
   onFilterChange,
   onQueryChange,
   onLogout,
@@ -24,7 +27,10 @@ export default function CatalogView({
   onDelete,
   onRestore,
   onDestroy,
+  onRegister,
+  onUsers,
 }) {
+  const currentUser = useCurrentUser()
   const counts = {
     all: articles.length,
     published: articles.filter((a) => a.published).length,
@@ -53,21 +59,58 @@ export default function CatalogView({
         <div className="topbar__row">
           <div>
             <span className="admin__kicker">La Mar · Admin</span>
+            {currentUser && currentUser.name && (
+              <p className="topbar__greeting">Hola, {currentUser.name}</p>
+            )}
             <h1 className="admin__title">Catálogo</h1>
           </div>
-          <button
-            aria-label="Cerrar sesión"
-            className="icon-btn"
-            onClick={onLogout}
-            type="button"
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20 }}
+          <div className="topbar__actions">
+            {isAdmin && (
+              <button
+                aria-label="Administrar usuarios"
+                className="icon-btn"
+                onClick={onUsers}
+                title="Administrar usuarios"
+                type="button"
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 20 }}
+                >
+                  group
+                </span>
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                aria-label="Registrar usuario"
+                className="icon-btn"
+                onClick={onRegister}
+                title="Registrar usuario"
+                type="button"
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 20 }}
+                >
+                  person_add
+                </span>
+              </button>
+            )}
+            <button
+              aria-label="Cerrar sesión"
+              className="icon-btn"
+              onClick={onLogout}
+              type="button"
             >
-              logout
-            </span>
-          </button>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 20 }}
+              >
+                logout
+              </span>
+            </button>
+          </div>
         </div>
         <div className="search">
           <span className="material-symbols-outlined search__icon">search</span>
@@ -106,8 +149,15 @@ export default function CatalogView({
         <div className="trash-info" id="trash-info">
           <span className="material-symbols-outlined">schedule</span>
           <p>
-            Los artículos eliminados se guardan <strong>30 días</strong>. Puedes
-            restaurarlos o borrarlos definitivamente; pasado ese plazo se
+            {retentionDays ? (
+              <>
+                Los artículos eliminados se guardan{' '}
+                <strong>{retentionDays} días</strong>.
+              </>
+            ) : (
+              'El plazo de conservación no está disponible en este momento.'
+            )}{' '}
+            Puedes restaurarlos o borrarlos definitivamente; pasado ese plazo se
             eliminan solos.
           </p>
         </div>
@@ -125,6 +175,7 @@ export default function CatalogView({
             inTrash ? (
               <TrashCard
                 article={a}
+                retentionDays={retentionDays}
                 key={a.id}
                 onDestroy={() => onDestroy(a)}
                 onRestore={() => onRestore(a)}

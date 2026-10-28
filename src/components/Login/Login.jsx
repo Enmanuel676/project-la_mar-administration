@@ -1,29 +1,48 @@
 import { useState } from 'react'
-import { api } from '../../lib/api'
+import { hasErrors, LIMITS, validateLogin } from '../../lib/validation'
 import DoneButton from '../DoneButton/DoneButton'
 
-export default function Login({ onLogin }) {
+// `notice`: aviso que llega de fuera, por ejemplo que la sesión anterior caducó.
+export default function Login({
+  notice,
+  onShowRegister,
+  onLogin,
+  onLoginDone,
+}) {
+  const [loading, setLoading] = useState(false)
+  const [loginResult, setLoginResult] = useState(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  // Sesión ya recibida ({ token, user }): el botón pasa a «Hecho» y, al terminar, se entra.
-  const [logged, setLogged] = useState(null)
+  // Un campo muestra su error cuando ya se ha salido de él una vez: así no aparece
+  // «correo no válido» con la primera letra. El botón, en cambio, se bloquea desde el principio.
+  const [touched, setTouched] = useState({})
+
+  const errors = validateLogin({ email, password })
+  const invalid = hasErrors(errors)
+  const emailError = touched.email && errors.email
+  const passwordError = touched.password && errors.password
+
+  function touch(field) {
+    setTouched((t) => ({ ...t, [field]: true }))
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!email || !password) {
-      setError('Introduce tu correo y contraseña.')
+    if (loading) return
+    if (invalid) {
+      setTouched({ email: true, password: true })
       return
     }
     setError('')
-    setBusy(true)
+    setLoading(true)
     try {
-      setLogged(await api.login(email, password))
+      const result = await onLogin(email, password)
+      setLoginResult(result)
     } catch (ex) {
       setError(ex.message)
-      setBusy(false)
+      setLoading(false)
     }
   }
 
@@ -43,27 +62,45 @@ export default function Login({ onLogin }) {
         <p className="admin__lead">
           Accede para gestionar el catálogo de la tienda.
         </p>
+        {notice && (
+          <p className="login__notice" role="status">
+            {notice}
+          </p>
+        )}
         <form className="login__form" noValidate onSubmit={handleSubmit}>
           <label>
             <span className="admin__label">Correo electrónico</span>
             <input
+              aria-describedby={emailError ? 'login-email-error' : undefined}
+              aria-invalid={emailError ? true : undefined}
               autoComplete="username"
-              className="field"
+              className={'field' + (emailError ? ' field--invalid' : '')}
               inputMode="email"
+              onBlur={() => touch('email')}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@lamar.com"
               required
               type="email"
               value={email}
             />
+            {emailError && (
+              <span className="admin__field-error" id="login-email-error">
+                {emailError}
+              </span>
+            )}
           </label>
           <label>
             <span className="admin__label">Contraseña</span>
             <div className="login__password">
               <input
+                aria-describedby={
+                  passwordError ? 'login-password-error' : undefined
+                }
+                aria-invalid={passwordError ? true : undefined}
                 autoComplete="current-password"
-                className="field"
-                minLength={4}
+                className={'field' + (passwordError ? ' field--invalid' : '')}
+                maxLength={LIMITS.password}
+                onBlur={() => touch('password')}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
@@ -84,20 +121,34 @@ export default function Login({ onLogin }) {
                 </span>
               </button>
             </div>
+            {passwordError && (
+              <span className="admin__field-error" id="login-password-error">
+                {passwordError}
+              </span>
+            )}
           </label>
           {error && (
             <p className="admin__error" role="alert">
               {error}
             </p>
           )}
+          <div className="login__actions">
+            <button
+              className="btn-ghost"
+              onClick={onShowRegister}
+              type="button"
+            >
+              ¿No tienes cuenta? Regístrate
+            </button>
+          </div>
           <DoneButton
-            className={'btn-primary btn-block' + (busy ? ' is-busy' : '')}
-            disabled={busy}
-            done={!!logged}
-            onDone={() => onLogin(logged.token, logged.user)}
+            className={'btn-primary btn-block' + (loading ? ' is-busy' : '')}
+            disabled={loading || invalid}
+            done={!!loginResult}
+            onDone={() => onLoginDone(loginResult)}
             type="submit"
           >
-            {busy ? (
+            {loading ? (
               <span>Cargando…</span>
             ) : (
               <>

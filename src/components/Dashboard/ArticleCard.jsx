@@ -46,6 +46,11 @@ export default function ArticleCard({
               ? '—'
               : article.stock}
           </span>
+          {article.ownerName && (
+            <span className="card__owner">
+              · Creador: {article.ownerName}
+            </span>
+          )}
         </div>
       </button>
       <div className="card__side">

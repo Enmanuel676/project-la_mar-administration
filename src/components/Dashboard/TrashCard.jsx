@@ -1,24 +1,32 @@
 import Money from './Money'
 import DoneButton from '../DoneButton/DoneButton'
-import { DAY_MS, TRASH_DAYS } from '../../lib/api'
+import { DAY_MS } from '../../lib/api'
 
-function daysLeft(article) {
+function daysLeft(article, retentionDays) {
   return Math.max(
     0,
     Math.ceil(
       (new Date(article.deletedAt).getTime() +
-        TRASH_DAYS * DAY_MS -
+        retentionDays * DAY_MS -
         Date.now()) /
         DAY_MS,
     ),
   )
 }
 
-export default function TrashCard({ article, status, onRestore, onDestroy }) {
+export default function TrashCard({
+  article,
+  status,
+  onRestore,
+  onDestroy,
+  retentionDays,
+}) {
   // Mientras se restaura: «Restaurando…» y luego «Hecho», antes de que la tarjeta salga.
   const busy = !!status
-  const left = daysLeft(article)
-  const pct = Math.round((left / TRASH_DAYS) * 100)
+  const left = retentionDays ? daysLeft(article, retentionDays) : null
+  const pct = retentionDays
+    ? Math.min(100, Math.round((left / retentionDays) * 100))
+    : 0
   const deletedOn = new Date(article.deletedAt).toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'short',
@@ -38,18 +46,25 @@ export default function TrashCard({ article, status, onRestore, onDestroy }) {
           <span className="card__name">{article.name}</span>
           <span className="card-trash__date">
             Eliminado el {deletedOn} · <Money article={article} />
+            {article.ownerName && ` · Creador: ${article.ownerName}`}
           </span>
         </div>
         <span className={'badge' + (left <= 5 ? ' badge-warn' : '')}>
-          {left === 1 ? '1 día' : left + ' días'}
+          {left === null
+            ? 'En papelera'
+            : left === 1
+              ? '1 día'
+              : left + ' días'}
         </span>
       </div>
-      <div className="card-trash__bar">
-        <div
-          className={left <= 5 ? 'is-warn' : ''}
-          style={{ width: pct + '%' }}
-        />
-      </div>
+      {retentionDays && (
+        <div className="card-trash__bar">
+          <div
+            className={left <= 5 ? 'is-warn' : ''}
+            style={{ width: pct + '%' }}
+          />
+        </div>
+      )}
       <div className="card-trash__actions">
         <DoneButton
           className={'btn-ghost btn-sm' + (busy ? ' is-busy' : '')}

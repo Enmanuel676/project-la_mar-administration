@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { api } from '../../lib/api'
 import { DONE_MS } from '../DoneButton/DoneButton'
 import CatalogView from './CatalogView'
 import ArticleFormView from './ArticleFormView'
 import ConfirmDialog from './ConfirmDialog'
 import Toasts from './Toasts'
+import Register from '../Register/Register'
+import UsersView from '../UsersView/UsersView'
+import { useCurrentUser } from '../CurrentUserContext/CurrentUserContext'
 
 // Las acciones cambian la lista cuando su botón ya ha pasado a «Hecho» (DoneButton): antes,
 // la tarjeta o el diálogo desaparecerían sin que se viera la transición. Se espera aquí y no
@@ -14,13 +17,15 @@ function settle() {
   return new Promise((resolve) => setTimeout(resolve, DONE_MS))
 }
 
-export default function Dashboard({ onLogout }) {
-  const [articles, setArticles] = useState([])
-  const [deleted, setDeleted] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function Dashboard({ onLogout, onRegister, initialCatalog }) {
+  const currentUser = useCurrentUser()
+  const [articles, setArticles] = useState(initialCatalog.articles)
+  const [deleted, setDeleted] = useState(initialCatalog.deleted)
+  const loading = initialCatalog.loading
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
-  const [view, setView] = useState('catalog') // 'catalog' | 'form'
+  const [view, setView] = useState('catalog') // 'catalog' | 'form' | 'register' | 'users'
+  const isAdmin = !!(currentUser?.isAdmin || currentUser?.role === 'admin')
   const [editingId, setEditingId] = useState(null)
   const [confirm, setConfirm] = useState(null) // { article, permanent, busy, done }
   // Tarjetas que se están publicando o restaurando: { [id]: 'busy' | 'done' }
@@ -40,27 +45,6 @@ export default function Dashboard({ onLogout }) {
     }, 2400)
   }, [])
 
-  useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      try {
-        const [list, trash] = await Promise.all([api.list(), api.listDeleted()])
-        if (ignore) return
-        setArticles(list)
-        setDeleted(trash)
-      } catch (ex) {
-        if (ignore) return
-        pushToast(ex.message, 'error')
-        if (ex.message.indexOf('Sesión') >= 0) onLogout()
-      } finally {
-        if (!ignore) setLoading(false)
-      }
-    })()
-    return () => {
-      ignore = true
-    }
-  }, [onLogout, pushToast])
-
   const editingArticle = editingId
     ? articles.find((a) => a.id === editingId) || null
     : null
@@ -68,6 +52,19 @@ export default function Dashboard({ onLogout }) {
   function openForm(article) {
     setEditingId(article ? article.id : null)
     setView('form')
+  }
+
+  function openRegister() {
+    setView('register')
+  }
+
+  function openUsers() {
+    setView('users')
+  }
+
+  function handleRegisterSuccess() {
+    pushToast('Usuario registrado correctamente')
+    setView('catalog')
   }
 
   function setStatus(id, status) {
@@ -163,14 +160,24 @@ export default function Dashboard({ onLogout }) {
     }
   }
 
+  const activeView =
+    !isAdmin && ['users', 'register'].includes(view) ? 'catalog' : view
+
   return (
     <>
-      {view === 'catalog' ? (
+      {initialCatalog.error && (
+        <p className="admin__error" role="alert">
+          {initialCatalog.error}
+        </p>
+      )}
+      {activeView === 'catalog' ? (
         <CatalogView
           articles={articles}
           deleted={deleted}
+          retentionDays={initialCatalog.retentionDays}
           filter={filter}
           loading={loading}
+          isAdmin={isAdmin}
           onAdd={() => openForm(null)}
           onDelete={(a) => requestDelete(a, false)}
           onDestroy={(a) => requestDelete(a, true)}
@@ -178,10 +185,24 @@ export default function Dashboard({ onLogout }) {
           onFilterChange={setFilter}
           onLogout={onLogout}
           onQueryChange={setQuery}
+          onRegister={openRegister}
+          onUsers={openUsers}
           onRestore={restoreArticle}
           onTogglePublished={togglePublished}
           pending={pending}
           query={query}
+        />
+      ) : activeView === 'users' ? (
+        <UsersView
+          onBack={() => setView('catalog')}
+          currentUser={currentUser}
+          isAdmin={isAdmin}
+        />
+      ) : activeView === 'register' ? (
+        <Register
+          onRegister={onRegister}
+          onRegistered={handleRegisterSuccess}
+          onBackToLogin={() => setView('catalog')}
         />
       ) : (
         <ArticleFormView
@@ -196,6 +217,7 @@ export default function Dashboard({ onLogout }) {
       )}
       <ConfirmDialog
         confirm={confirm}
+        retentionDays={initialCatalog.retentionDays}
         onCancel={() => setConfirm(null)}
         onConfirm={handleConfirm}
       />
